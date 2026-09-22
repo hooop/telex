@@ -1,0 +1,11 @@
+{
+  "name": "telex",
+  "version": "0.1.0",
+  "description": "Le second terminal qui explique en direct ce qu'un agent de développement est en train de construire.",
+  "type": "module",
+  "bin": { "telex": "bin/telex.js" },
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test test/*.test.js" },
+  "license": "UNLICENSED",
+  "private": true
+}
