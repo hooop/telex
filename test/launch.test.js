@@ -11,8 +11,10 @@ test('script de lancement : shell valide, vrai CLI, fin de session enregistrée'
   const { createSession, sessionDir } = await import('../src/store.js');
   const { ADAPTERS } = await import('../src/adapters/index.js');
   const { writeLaunchScript } = await import('../src/cli.js');
+  const ids = {};
   for (const id of ['claude', 'codex']) {
     const meta = createSession({ project: "l'appli", cwd: tmp, agent: id });
+    ids[id] = meta.id;
     const dir = sessionDir(meta.id);
     const script = writeLaunchScript(dir, meta, ADAPTERS[id], `/usr/local/bin/${id}`, ['--model', 'x y']);
     execFileSync('/bin/sh', ['-n', script]);
@@ -21,7 +23,7 @@ test('script de lancement : shell valide, vrai CLI, fin de session enregistrée'
     assert.match(text, /'x y'/);
     assert.match(text, / end '\d{8}-\d{6}-[0-9a-f]{4}' "\$code"/);
   }
-  const settings = JSON.parse(fs.readFileSync(path.join(sessionDir(fs.readdirSync(path.join(tmp, 'home', 'sessions'))[0]), 'claude-settings.json'), 'utf8'));
+  const settings = JSON.parse(fs.readFileSync(path.join(sessionDir(ids.claude), 'claude-settings.json'), 'utf8'));
   assert.deepEqual(settings.permissions.allow, ['mcp__telex__timeline']);
   assert.ok(settings.hooks.PostToolUse[0].hooks[0].command.includes(' hook claude'));
 });

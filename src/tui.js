@@ -4,13 +4,10 @@ import { readMeta, tailJsonl } from './store.js';
 import { annotate, buildTimeline, isTestOrBuild, observedFor } from './timeline.js';
 import { Workspace } from './workspace.js';
 import { redact } from './redact.js';
-import { clock, entryLines, footerSummary, header, style as s, visibleLength, wrap } from './render.js';
+import { buttonBar, clock, duration, entryLines, footerSummary, header, previewLines, separator, SPINNER_TICKS, STATUS_LABEL, style as s, visibleLength, wrap } from './render.js';
 import { SYMBOL } from './timeline.js';
 
-const KEYS_TIMELINE = '[↑↓] naviguer   [Entrée] détails   [D] diff   [T] tests   [Q] quitter';
-const KEYS_VIEW = '[↑↓] défiler   [Échap] retour   [D] diff   [T] tests   [Entrée] détails';
 
-const STATUS_LABEL = { running: 'en cours', done: 'réalisée', validated: 'vérification exécutée', failed: 'erreur', replaced: 'approche remplacée' };
 const AGENT_LABEL = { claude: 'Claude Code', codex: 'Codex' };
 
 export function runTui(sessionDir, { onQuit } = {}) {
@@ -26,7 +23,9 @@ export function runTui(sessionDir, { onQuit } = {}) {
   let view = 'timeline';
   let viewScroll = 0;
   let showRaw = false;
+  let focus = null; // bouton du menu en surbrillance (flèches ← →)
   let workspace = null;
+  let tick = 0; // image courante de l'animation de l'en-tête
   const diffCache = new Map();
 
   const ws = () => (workspace ??= new Workspace(sessionDir, meta.cwd));
@@ -47,12 +46,14 @@ export function runTui(sessionDir, { onQuit } = {}) {
     const rows = [];
     const starts = [];
     timeline.entries.forEach((entry, i) => {
-      if (i) rows.push('');
+      rows.push(separator(width, s));
       starts.push(rows.length);
-      const lines = entryLines(entry, width - 2);
-      lines.forEach((l, j) => rows.push((i === selected && (j === 0) ? `${s.amber}›${s.reset} ` : '  ') + l));
+      const lines = entryLines(entry, width, s, { tick, gutter: 2, compact: true });
+      if (i === selected) lines[0] = `${s.amber}›${s.reset} ` + lines[0].slice(2);
+      rows.push(...lines);
       starts[i] = [starts[i], rows.length - 1];
     });
+    if (timeline.entries.length) rows.push(separator(width, s));
     return { rows, starts };
   }
 
@@ -197,17 +198,21 @@ export function runTui(sessionDir, { onQuit } = {}) {
   function render() {
     const width = Math.max(40, out.columns || 80);
     const height = Math.max(10, out.rows || 24);
-    const head = header(meta, timeline.session).map((l) => ' ' + l);
+    const head = headLines(width);
     const entry = timeline.entries[selected];
     let body;
-    let keys;
+    let info = '';
 
     if (view === 'timeline' || !entry) {
       view = 'timeline';
-      keys = KEYS_TIMELINE;
-      const bodyHeight = height - head.length - 2;
+      const n = timeline.entries.length;
+      if (n && follow) info = 'suivi en direct'; // le numéro d'étape est dans le panneau d'aperçu
+      // Panneau d'aperçu de l'étape sélectionnée, en bas ; la liste occupe le reste.
+      const available = height - head.length - 2;
+      const panelHeight = n && selected >= 0 ? Math.max(6, Math.min(12, Math.floor(available * 0.4))) : 0;
+      const bodyHeight = available - panelHeight;
       const { rows, starts } = timelineRows(width);
-      if (!rows.length) rows.push(`  ${s.dim}En attente de la première étape…${s.reset}`);
+      if (!rows.length) rows.push(`  ${s.dim}Prêt${s.reset}`);
       if (timeline.session.ended_at) rows.push('', ...footerSummary(timeline.entries).map((l) => '  ' + l));
       let top = 0;
       if (rows.length > bodyHeight) {
@@ -221,18 +226,35 @@ export function runTui(sessionDir, { onQuit } = {}) {
       }
       body = rows.slice(top, top + bodyHeight);
       if (!follow && unseen) body[body.length - 1] = `  ${s.amber}↓ ${unseen} nouvelle${unseen > 1 ? 's' : ''} étape${unseen > 1 ? 's' : ''} — [Fin] pour suivre${s.reset}`;
+      if (panelHeight) {
+        while (body.length < bodyHeight) body.push('');
+        body.push(...previewLines(entry, { index: selected, count: n, width, height: panelHeight, s }));
+      }
     } else {
-      keys = KEYS_VIEW;
       const bodyHeight = height - head.length - 2;
       const rows = (view === 'details' ? detailRows(entry, width) : view === 'diff' ? diffRows(entry, width) : testRows(entry, width))
         .map((l) => '  ' + l);
       viewScroll = Math.max(0, Math.min(viewScroll, rows.length - bodyHeight));
       body = rows.slice(viewScroll, viewScroll + bodyHeight);
+      if (rows.length > bodyHeight) info = `lignes ${viewScroll + 1}–${Math.min(rows.length, viewScroll + bodyHeight)} / ${rows.length}`;
     }
 
     while (body.length < height - head.length - 2) body.push('');
-    const frame = [...head, ...body, '', ` ${s.dim}${keys}${s.reset}`];
+    const frame = [...head, ...body, '', buttonBar(buttons(), width, { focus: focusedId(), info })];
     out.write('\x1b[H' + frame.map((l) => clip(l, width) + '\x1b[K').join('\n') + '\x1b[J');
+  }
+
+  function headLines(width) {
+    return header(meta, timeline.session, s, width - 1, tick).map((l) => ' ' + l);
+  }
+
+  // Anime l'en-tête seul : on réécrit ses lignes sans toucher au reste de l'écran.
+  function animate() {
+    tick++;
+    // Le rond d'une étape en cours change de moitié : il faut redessiner le corps.
+    if (tick % SPINNER_TICKS === 0 && view === 'timeline' && timeline.entries.some((e) => e.status === 'running')) return render();
+    const width = Math.max(40, out.columns || 80);
+    out.write('\x1b[H' + headLines(width).map((l) => clip(l, width) + '\x1b[K').join('\n'));
   }
 
   function clip(line, width) {
@@ -256,9 +278,73 @@ export function runTui(sessionDir, { onQuit } = {}) {
     if (follow) unseen = 0;
   }
 
+  // ─── Menu du bas ─────────────────────────────────────────────────────────
+
+  function open(v) {
+    if (v !== 'tests' && selected < 0) return;
+    view = v;
+    viewScroll = 0;
+    focus = null;
+  }
+
+  const ACTIONS = {
+    details: () => open('details'),
+    diff: () => open('diff'),
+    tests: () => open('tests'),
+    back: () => { view = 'timeline'; focus = null; },
+    raw: () => { showRaw = !showRaw; },
+    follow: () => move(Infinity),
+  };
+
+  function buttons() {
+    const none = selected < 0;
+    if (view === 'timeline') {
+      return [
+        { id: 'details', key: '↵', label: 'détails', disabled: none },
+        { id: 'diff', key: 'D', label: 'diff', disabled: none },
+        { id: 'tests', key: 'T', label: 'tests' },
+        ...(!follow && timeline.entries.length ? [{ id: 'follow', key: 'Fin', label: unseen ? `suivre (${unseen})` : 'suivre' }] : []),
+        { id: 'quit', key: 'Q', label: 'quitter' },
+      ];
+    }
+    return [
+      { id: 'back', key: 'Échap', label: 'retour' },
+      { id: 'details', key: '↵', label: 'détails', active: view === 'details' },
+      { id: 'diff', key: 'D', label: 'diff', active: view === 'diff' },
+      { id: 'tests', key: 'T', label: 'tests', active: view === 'tests' },
+      ...(view === 'details' ? [{ id: 'raw', key: 'R', label: 'brut', active: showRaw }] : []),
+      { key: '↑↓', label: 'défiler' },
+    ];
+  }
+
+  // Bouton en surbrillance : celui choisi aux flèches s'il est encore là,
+  // sinon celui qui correspond à Entrée (détails, ou la vue ouverte).
+  function focusedId() {
+    const ids = buttons().filter((b) => b.id && !b.disabled).map((b) => b.id);
+    if (ids.includes(focus)) return focus;
+    const fallback = view === 'timeline' ? 'details' : view;
+    return ids.includes(fallback) ? fallback : null;
+  }
+
+  function moveFocus(delta) {
+    const ids = buttons().filter((b) => b.id && !b.disabled).map((b) => b.id);
+    const i = ids.indexOf(focusedId());
+    focus = i < 0 ? ids.at(delta > 0 ? 0 : -1) : ids[(i + delta + ids.length) % ids.length];
+  }
+
+  function press() {
+    const id = focusedId();
+    if (id === 'quit') return quit();
+    ACTIONS[id]?.();
+    render();
+  }
+
   function onKey(key) {
     const k = key.toLowerCase();
     if (key === '\x03' || (k === 'q' && view === 'timeline')) return quit();
+    if (key === '\x1b[D') { moveFocus(-1); return render(); }
+    if (key === '\x1b[C') { moveFocus(1); return render(); }
+    if (key === '\r' || key === '\n') return press();
     if (view === 'timeline') {
       if (key === '\x1b[A' || k === 'k') move(-1);
       else if (key === '\x1b[B' || k === 'j') move(1);
@@ -266,19 +352,17 @@ export function runTui(sessionDir, { onQuit } = {}) {
       else if (key === '\x1b[6~') move(5);
       else if (key === '\x1b[H' || key === 'g') { move(-Infinity); }
       else if (key === '\x1b[F' || key === 'G' || key === ' ') { move(Infinity); }
-      else if ((key === '\r' || key === '\n') && selected >= 0) { view = 'details'; viewScroll = 0; }
-      else if (k === 'd' && selected >= 0) { view = 'diff'; viewScroll = 0; }
-      else if (k === 't') { view = 'tests'; viewScroll = 0; }
+      else if (k === 'd') open('diff');
+      else if (k === 't') open('tests');
     } else {
-      if (key === '\x1b' || k === 'q' || key === '\x7f') view = 'timeline';
+      if (key === '\x1b' || k === 'q' || key === '\x7f') ACTIONS.back();
       else if (key === '\x1b[A' || k === 'k') viewScroll = Math.max(0, viewScroll - 1);
       else if (key === '\x1b[B' || k === 'j') viewScroll += 1;
       else if (key === '\x1b[5~') viewScroll = Math.max(0, viewScroll - 10);
       else if (key === '\x1b[6~' || key === ' ') viewScroll += 10;
-      else if (k === 'd') { view = 'diff'; viewScroll = 0; }
-      else if (k === 't') { view = 'tests'; viewScroll = 0; }
-      else if (key === '\r') { view = 'details'; viewScroll = 0; }
-      else if (k === 'r' && view === 'details') showRaw = !showRaw;
+      else if (k === 'd') open('diff');
+      else if (k === 't') open('tests');
+      else if (k === 'r' && view === 'details') ACTIONS.raw();
     }
     render();
   }
@@ -304,11 +388,8 @@ export function runTui(sessionDir, { onQuit } = {}) {
   out.on('resize', render);
   stops.push(tailJsonl(path.join(sessionDir, 'events.jsonl'), (items) => { events.push(...items); rebuild(); render(); }));
   stops.push(tailJsonl(path.join(sessionDir, 'observed.jsonl'), (items) => { observed.push(...items); annotate(timeline.entries, observed); render(); }));
+  const animation = setInterval(animate, 140);
+  stops.push(() => clearInterval(animation));
   render();
 }
 
-function duration(secs) {
-  if (secs < 60) return `${secs} s`;
-  const m = Math.floor(secs / 60);
-  return m < 60 ? `${m} min ${String(secs % 60).padStart(2, '0')} s` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
-}

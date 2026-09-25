@@ -9,14 +9,16 @@ export const AGENT_INSTRUCTIONS = `\
 
 L'utilisateur suit ton travail dans un second terminal, « telex ». Tu l'alimentes avec l'outil \`${TOOL_NAME}\` (serveur MCP « telex »). Travaille normalement ; ne mentionne pas telex dans tes réponses.
 
-Appelle l'outil uniquement aux moments significatifs :
+L'utilisateur doit pouvoir comprendre, en lisant seulement la timeline, ce que tu fais, pourquoi, et où tu en es. Appelle l'outil aux moments suivants :
 - start : tu commences une fonctionnalité demandée, puis chacune de ses parties qui a un rôle compréhensible (composant, route, table, migration, dépendance structurante, configuration importante, connexion entre deux parties, compilation ou test pertinent) ;
 - complete : cette partie est réalisée (même step_id) ;
 - fail : une erreur réelle interrompt ou modifie le travail (test ou compilation en échec inattendu, configuration ou dépendance manquante, approche qui ne fonctionne pas). Signale-la dès que tu la constates, avant de corriger, sur la partie concernée (jamais sur la fonctionnalité elle-même), avec le message exact en technical_detail ; la correction est ensuite une nouvelle étape (start puis complete). Un test écrit volontairement pour échouer d'abord n'est pas une erreur ;
 - replace : tu abandonnes une approche (même step_id) ; explique pourquoi ;
 - validate : un test ou une vérification a réellement été exécuté et a réussi (step_id de la partie vérifiée, ou un nouveau) ; dis exactement ce qui a été testé et ce qui ne l'a pas été (ex. « avec un service simulé ; aucun véritable e-mail envoyé »).
 
-Jamais pour : lire ou chercher dans des fichiers, un import, une commande banale, un formatage, une petite correction de syntaxe. Pour une tâche triviale (question, micro-modification), n'appelle pas l'outil du tout.
+Toute demande qui modifie le projet (code, configuration, apparence, dépendances) reçoit au moins sa ligne : start avant la première modification, complete à la fin. Seules les demandes sans modification (question, explication, lecture) n'appellent pas l'outil.
+
+Jamais de ligne pour : lire ou chercher dans des fichiers, un import, une commande banale, un formatage, une petite correction de syntaxe au sein d'une étape.
 
 Rédaction, dans la langue de l'utilisateur :
 - title : action courte à l'infinitif, qui garde le terme technique réel s'il compte (« Ajouter la migration », « Relier le formulaire au serveur »).
@@ -24,11 +26,16 @@ Rédaction, dans la langue de l'utilisateur :
 - technical_detail : facultatif, une route, une commande, un nom de table ou le message d'erreur exact.
 - Ne recopie jamais la valeur d'une clé, d'un token, d'un mot de passe ou d'un fichier .env : nomme la variable, pas sa valeur.
 
-La première étape d'une demande est la fonctionnalité elle-même (step_id = feature_id) ; termine-la par complete quand toute la demande est faite. Découpe ensuite le travail en parties successives (ex. un module, une route, une migration, les tests), chacune avec son propre step_id et le même feature_id. Les étapes restent à plat, dans l'ordre chronologique.`;
+La première étape d'une demande est la fonctionnalité elle-même (step_id = feature_id) ; son récit annonce les parties prévues ; termine-la par complete quand toute la demande est faite. Découpe ensuite le travail en parties successives, chacune avec son propre step_id et le même feature_id. Les étapes restent à plat, dans l'ordre chronologique.
+
+Découpage :
+- une partie par changement que l'utilisateur pourrait vérifier séparément : un comportement, un composant, un module modifié, une route, une migration, un lot de tests. Une demande qui touche plusieurs fichiers ou comportements compte en général 3 à 6 parties ; une seule ligne ne suffit que pour une modification d'un seul endroit ;
+- quand tu établis un diagnostic (cause d'un bug, raison d'un comportement) ou choisis entre plusieurs approches, ouvre une partie dédiée (« Diagnostiquer… », « Choisir… ») : start puis complete, dont le récit donne le constat ou la décision et sa raison ;
+- ouvre chaque partie au moment où tu t'y mets et ferme-la dès qu'elle est finie, pas toutes à la fin ; si le plan change en route, ouvre les nouvelles parties au fil de l'eau.`;
 
 export const TOOL_DESCRIPTION = `\
 Met à jour la timeline telex que l'utilisateur lit dans un second terminal. \
-Une ligne par étape significative de l'implémentation, jamais pour les micro-actions \
+Une ligne par partie de l'implémentation (changement vérifiable, diagnostic, choix d'approche), jamais pour les micro-actions \
 (lecture de fichier, recherche, import, commande banale). \
 start ouvre une ligne (●), complete la termine (✓, même step_id), fail signale une erreur réelle (✕), \
 replace une approche abandonnée (–), validate un test ou une vérification réellement exécutés. \

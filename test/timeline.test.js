@@ -46,7 +46,7 @@ test('erreur et approche remplacée restent visibles', () => {
 test('fin de session et bilan', () => {
   const ended = [...events, { type: 'session_end', ts: '2026-09-22T14:50:00Z', exit_code: 0 }];
   const out = staticTimeline({ meta: { project: 'needle', agent: 'claude' }, ...buildTimeline(ended) }, 80);
-  assert.match(out, /session terminée/);
+  assert.match(out, /SESSION TERMINÉE/);
   assert.match(out, /Bilan : 2 étapes réalisées · 1 vérification exécutée · 1 erreur · 1 approche remplacée · 2 non terminées/);
 });
 

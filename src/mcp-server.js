@@ -46,6 +46,10 @@ export function runMcpServer() {
             description: TOOL_DESCRIPTION,
             inputSchema: TOOL_SCHEMA,
             annotations: { title: 'Timeline telex', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+            // Claude Code diffère les outils MCP quand il y en a beaucoup : le modèle ne voit
+            // alors que le nom et doit le charger avant usage, ce qu'il omet. On demande
+            // que l'outil soit toujours chargé.
+            _meta: { 'anthropic/alwaysLoad': true, 'anthropic/searchHint': 'timeline telex étape progression' },
           }],
         });
       case 'tools/call': {
