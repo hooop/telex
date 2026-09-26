@@ -1,7 +1,13 @@
 // Masquage des secrets avant tout affichage ou écriture sur disque.
 // Principe : on garde le NOM d'une variable, jamais sa valeur.
+// C'est un filet de sécurité heuristique (formats connus, noms évocateurs) : il ne
+// garantit pas qu'aucun secret ne passe.
 
-const SECRET_NAME = /(KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|CREDENTIAL|PRIVATE|AUTH|COOKIE|SESSION|DSN|DATABASE_URL|CONN)/i;
+const SECRET_NAME = /(KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|CREDENTIAL|PRIVATE|AUTH(?!OR)|COOKIE|SESSION|DSN|DATABASE_URL|CONN)/i;
+// Noms qui contiennent un mot évocateur sans désigner un secret (chemins, variables du shell).
+const SAFE_NAME = /(_DIR|_PATH|_FILE|_HOME|_SOCK|_URL_PATH)$|^(OLD)?PWD$/i;
+
+const MASK = '••••';
 
 const VALUE_PATTERNS = [
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(-----END [A-Z ]*PRIVATE KEY-----|$)/g,
@@ -11,6 +17,9 @@ const VALUE_PATTERNS = [
   /\bre_[A-Za-z0-9_]{16,}/g, // Resend
   /\bgh[pousr]_[A-Za-z0-9]{20,}/g, // GitHub
   /\bgithub_pat_[A-Za-z0-9_]{20,}/g,
+  /\bglpat-[A-Za-z0-9_-]{20,}/g, // GitLab
+  /\bnpm_[A-Za-z0-9]{30,}/g, // npm
+  /\bhf_[A-Za-z0-9]{30,}/g, // Hugging Face
   /\bxox[abprs]-[A-Za-z0-9-]{10,}/g, // Slack
   /\bAKIA[0-9A-Z]{16}\b/g, // AWS
   /\bAIza[0-9A-Za-z_-]{30,}/g, // Google
@@ -19,7 +28,15 @@ const VALUE_PATTERNS = [
   /\b[a-z][a-z0-9+.-]*:\/\/[^\s:@/]+:[^\s@/]+@/gi, // identifiants dans une URL
 ];
 
-const MASK = '••••';
+// Secrets passés en option de ligne de commande : on garde l'option, on masque la valeur.
+const FLAG_PATTERNS = [
+  // --password <valeur>, --token=<valeur>, --api-key <valeur>, --client-secret <valeur>…
+  [/(\s--?[A-Za-z0-9-]*(?:password|passwd|token|secret|api-?key)[A-Za-z0-9-]*)(=|\s+)(?!-)("[^"\n]*"|'[^'\n]*'|\S+)/gi, (m, flag, sep) => `${flag}${sep}${MASK}`],
+  // mysql -p<valeur> (valeur collée à l'option)
+  [/(\b(?:mysql\w*|mariadb\w*)\b[^\n]*?\s-p)(?!\s)(\S+)/g, (m, before) => `${before}${MASK}`],
+  // curl -u <utilisateur>:<valeur>, --user <utilisateur>:<valeur>
+  [/(\s(?:-u|--user)(?:=|\s+)["']?[^\s:"']+:)([^\s"']+)/g, (m, before) => `${before}${MASK}`],
+];
 
 export function redact(text) {
   if (text == null) return text;
@@ -31,11 +48,15 @@ export function redact(text) {
       return MASK;
     });
   }
-  // NOM_SECRET=valeur, NOM_SECRET: valeur, "nomSecret": "valeur"
+  for (const [re, replace] of FLAG_PATTERNS) s = s.replace(re, replace);
+  // NOM_SECRET=valeur, NOM_SECRET: valeur, "nomSecret": "valeur avec espaces"
   s = s.replace(
-    /(["']?)([A-Za-z_][A-Za-z0-9_.-]*)\1(\s*[:=]\s*)(["']?)([^\s"',;}]{4,})\4/g,
-    (m, q, name, sep, vq, value) => {
-      if (!SECRET_NAME.test(name) || value === MASK || /^(Bearer|Basic)$/i.test(value) || /^(process\.env|os\.environ|env\(|\$\{?)/.test(value)) return m;
+    /(["']?)([A-Za-z_][A-Za-z0-9_.-]*)\1(\s*[:=]\s*)(?:"([^"\n]{4,})"|'([^'\n]{4,})'|([^\s"',;}]{4,}))/g,
+    (m, q, name, sep, dq, sq, bare) => {
+      const value = dq ?? sq ?? bare;
+      if (!SECRET_NAME.test(name) || SAFE_NAME.test(name)) return m;
+      if (value === MASK || /^(Bearer|Basic)$/i.test(value) || /^(process\.env|os\.environ|env\(|\$\{?)/.test(value)) return m;
+      const vq = dq !== undefined ? '"' : sq !== undefined ? "'" : '';
       return `${q}${name}${q}${sep}${vq}${MASK}${vq}`;
     },
   );
@@ -51,13 +72,4 @@ export function redactDeep(value) {
     return out;
   }
   return value;
-}
-
-// Fichiers dont le contenu n'est jamais lu, affiché ni conservé.
-export function isSensitivePath(p) {
-  const base = String(p).split('/').pop();
-  return /^\.env(\..*)?$/.test(base) && !/\.(example|sample|template)$/.test(base)
-    || /\.(pem|key|p12|pfx|crt|cer|keystore|jks)$/i.test(base)
-    || /^(id_rsa|id_ed25519|id_ecdsa)(\.pub)?$/.test(base)
-    || /^(\.npmrc|\.pypirc|\.netrc|credentials(\.json)?)$/.test(base);
 }

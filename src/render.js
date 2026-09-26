@@ -1,18 +1,24 @@
 // Mise en forme texte de la timeline, partagée par l'interface interactive
 // et l'affichage statique (replay --print, tests).
-import { SYMBOL } from './timeline.js';
+import { isStandaloneCheck, SYMBOL } from './timeline.js';
+import { agentLabel } from './agents.js';
+import { sanitize } from './sanitize.js';
 
 const ESC = '\x1b[';
+// Couleurs nommées par leur rôle (palette 256 couleurs).
 export const style = {
   // Pas de gras : `bold` reste vide pour que tous ses usages s'affichent en graisse normale.
   reset: `${ESC}0m`, bold: '', dim: `${ESC}2m`, underline: `${ESC}4m`, inverse: `${ESC}7m`,
-  // Palette 256 couleurs : 231 blanc, 230 crème, 195 bleu pâle, 225 rose pâle.
-  green: `${ESC}38;5;195m`, red: `${ESC}38;5;225m`, amber: `${ESC}38;5;230m`, gray: `${ESC}2;38;5;231m`, white: `${ESC}38;5;231m`, cyan: `${ESC}38;5;230m`,
+  ok: `${ESC}38;5;195m`, //       bleu pâle : étape réalisée ou vérifiée, ajout dans un diff
+  error: `${ESC}38;5;225m`, //    rose pâle : erreur, fait contradictoire, retrait dans un diff
+  accent: `${ESC}38;5;230m`, //   crème : étape en cours, touches, sélection
+  muted: `${ESC}2;38;5;231m`, //  blanc atténué : détails secondaires, filets
+  bright: `${ESC}38;5;231m`, //   blanc : heures, logo, informations principales
 };
 
 export const plain = Object.fromEntries(Object.keys(style).map((k) => [k, '']));
 
-const STATUS_COLOR = { running: 'amber', done: 'green', validated: 'green', failed: 'red', replaced: 'gray' };
+const STATUS_COLOR = { running: 'accent', done: 'ok', validated: 'ok', failed: 'error', replaced: 'muted' };
 
 export const INDENT = 13; // "HH:MM:SS  ●  "
 
@@ -26,9 +32,11 @@ export function visibleLength(s) {
   return [...s.replace(/\x1b\[[0-9;]*m/g, '')].length;
 }
 
+// Tout texte venu de l'agent ou du projet passe par ici : les séquences de contrôle
+// du terminal sont neutralisées avant affichage.
 export function wrap(text, width) {
   const out = [];
-  for (const para of String(text).split('\n')) {
+  for (const para of sanitize(String(text)).split('\n')) {
     let line = '';
     for (const word of para.split(/\s+/).filter(Boolean)) {
       if (!line) { line = word; continue; }
@@ -43,7 +51,7 @@ export function wrap(text, width) {
 
 // Ligne de tirets entre deux entrées ; une colonne de moins pour éviter le retour à la ligne automatique du terminal.
 export function separator(width, s = style) {
-  return `${s.gray}${'-'.repeat(Math.max(1, width - 1))}${s.reset}`;
+  return `${s.muted}${'-'.repeat(Math.max(1, width - 1))}${s.reset}`;
 }
 
 // Rond à moitié rempli qui tourne (gauche, haut, droite, bas) pour une étape en cours,
@@ -67,7 +75,7 @@ export function entryLines(entry, width, s = style, { tick = null, gutter = 0, c
   const textWidth = Math.max(20, width - gutter - INDENT);
   const pad = ' '.repeat(gutter + INDENT);
   const [first, ...rest] = wrap(entry.title, textWidth);
-  const lines = [`${' '.repeat(gutter)}${s.white}${clock(entry.ts)}${s.reset}  ${symbol(entry, tick, s, color)}  ${entry.status === 'replaced' ? s.dim : s.bold}${first}${s.reset}`];
+  const lines = [`${' '.repeat(gutter)}${s.bright}${clock(entry.ts)}${s.reset}  ${symbol(entry, tick, s, color)}  ${entry.status === 'replaced' ? s.dim : s.bold}${first}${s.reset}`];
   for (const r of rest) lines.push(`${pad}${s.bold}${r}${s.reset}`);
   if (compact) return lines;
   if (entry.narrative) {
@@ -76,11 +84,11 @@ export function entryLines(entry, width, s = style, { tick = null, gutter = 0, c
   }
   if (entry.technical_detail) {
     lines.push('');
-    for (const l of wrap(entry.technical_detail, textWidth)) lines.push(`${pad}${s.gray}${l}${s.reset}`);
+    for (const l of wrap(entry.technical_detail, textWidth)) lines.push(`${pad}${s.muted}${l}${s.reset}`);
   }
   if (entry.fact_note) {
     lines.push('');
-    for (const l of wrap(entry.fact_note, textWidth)) lines.push(`${pad}${s.red}${l}${s.reset}`);
+    for (const l of wrap(entry.fact_note, textWidth)) lines.push(`${pad}${s.error}${l}${s.reset}`);
   }
   return lines;
 }
@@ -99,15 +107,15 @@ export function previewLines(entry, { index, count, width, height, now = Date.no
   const textWidth = Math.max(20, width - 2);
   let info = `étape ${index + 1}/${count} · ${STATUS_LABEL[entry.status]}`;
   if (entry.status === 'running') info += ` depuis ${duration(Math.max(0, Math.round((now - Date.parse(entry.ts)) / 1000)))}`;
-  else if (entry.end_ts && entry.status !== 'validated') info += ` · ${duration(Math.round((Date.parse(entry.end_ts) - Date.parse(entry.ts)) / 1000))}`;
+  else if (entry.end_ts && !isStandaloneCheck(entry)) info += ` · ${duration(Math.round((Date.parse(entry.end_ts) - Date.parse(entry.ts)) / 1000))}`;
   // Même habillage qu'une étape complète : pointillés, en-tête, pointillés, récit.
-  const lines = [separator(width, s), `  ${s.white}${info}${s.reset}`, separator(width, s)];
+  const lines = [separator(width, s), `  ${s.bright}${info}${s.reset}`, separator(width, s)];
 
   const body = [];
   const dim = entry.status === 'replaced' ? s.dim : '';
   if (entry.narrative) body.push(...wrap(entry.narrative, textWidth).map((l) => `${dim}${l}${s.reset}`));
-  if (entry.technical_detail) body.push(...wrap(entry.technical_detail, textWidth).map((l) => `${s.gray}${l}${s.reset}`));
-  if (entry.fact_note) body.push(...wrap(entry.fact_note, textWidth).map((l) => `${s.red}${l}${s.reset}`));
+  if (entry.technical_detail) body.push(...wrap(entry.technical_detail, textWidth).map((l) => `${s.muted}${l}${s.reset}`));
+  if (entry.fact_note) body.push(...wrap(entry.fact_note, textWidth).map((l) => `${s.error}${l}${s.reset}`));
   if (!body.length) body.push(`${s.dim}Pas de récit pour cette étape.${s.reset}`);
 
   const room = height - lines.length;
@@ -197,15 +205,16 @@ function elapsed(from, to) {
 function logo(s, tick) {
   const shown = tick == null ? LOGO.length : Math.min(LOGO.length, Math.floor(tick / 2) + 1);
   const cursor = shown < LOGO.length ? ` ${fg(s, 230)}▌` : '';
-  return `${s.white}${[...LOGO].slice(0, shown).join(' ')}${cursor}${s.reset}`;
+  return `${s.bright}${[...LOGO].slice(0, shown).join(' ')}${cursor}${s.reset}`;
 }
 
 function fit(text, width) {
-  return visibleLength(text) <= width ? text : [...text].slice(0, Math.max(0, width - 1)).join('') + '…';
+  const clean = sanitize(text);
+  return visibleLength(clean) <= width ? clean : [...clean].slice(0, Math.max(0, width - 1)).join('') + '…';
 }
 
 export function header(meta, session, s = style, width = 80, tick = null) {
-  const agent = { claude: 'Claude Code', codex: 'Codex' }[meta.agent] || meta.agent;
+  const agent = agentLabel(meta.agent);
   const live = !session.ended_at;
   const w = Math.max(20, width - 1); // une colonne de moins que l'écran
   // Sur un terminal trop étroit, la mascotte s'efface pour laisser la place au texte.
@@ -215,8 +224,8 @@ export function header(meta, session, s = style, width = 80, tick = null) {
   const room = face ? w - cell - 2 : w; // « | » puis une espace
 
   const title = logo(s, tick);
-  const dot = live ? `${fg(s, tick == null ? 230 : PULSE[tick % PULSE.length])}●${s.reset}` : `${s.gray}■${s.reset}`;
-  const state = live ? `${fg(s, 230)}EN DIRECT${s.reset}` : `${s.gray}SESSION TERMINÉE${s.reset}`;
+  const dot = live ? `${fg(s, tick == null ? 230 : PULSE[tick % PULSE.length])}●${s.reset}` : `${s.muted}■${s.reset}`;
+  const state = live ? `${fg(s, 230)}EN DIRECT${s.reset}` : `${s.muted}SESSION ${session.interrupted ? 'INTERROMPUE' : 'TERMINÉE'}${s.reset}`;
   const chrono = meta.started_at && (tick != null || !live)
     ? `  ${fg(s, 195)}${elapsed(meta.started_at, live ? Date.now() : Date.parse(session.ended_at))}${s.reset}` : '';
   let badge = `${dot} ${state}${chrono}`;
@@ -225,12 +234,12 @@ export function header(meta, session, s = style, width = 80, tick = null) {
   const top = `${title}${' '.repeat(Math.max(1, room - visibleLength(title) - visibleLength(badge)))}${badge}`;
 
   const project = fit(String(meta.project), Math.max(4, room - 31));
-  const info = `${s.dim}PROJET ▸${s.reset} ${s.white}${project}${s.reset}   ${s.dim}AGENT ▸${s.reset} ${s.white}${agent}${s.reset}`;
-  const infoRow = visibleLength(info) <= room ? info : `${s.white}${fit(`${meta.project} · ${agent}`, room)}${s.reset}`;
+  const info = `${s.dim}PROJET ▸${s.reset} ${s.bright}${project}${s.reset}   ${s.dim}AGENT ▸${s.reset} ${s.bright}${agent}${s.reset}`;
+  const infoRow = visibleLength(info) <= room ? info : `${s.bright}${fit(`${meta.project} · ${agent}`, room)}${s.reset}`;
 
-  const rule = (n) => `${s.gray}${'-'.repeat(Math.max(0, n))}${s.reset}`;
-  const cross = `${s.gray}+${s.reset}`;
-  const bar = `${s.gray}|${s.reset}`;
+  const rule = (n) => `${s.muted}${'-'.repeat(Math.max(0, n))}${s.reset}`;
+  const cross = `${s.muted}+${s.reset}`;
+  const bar = `${s.muted}|${s.reset}`;
   if (!face) return [rule(w), top, rule(w), infoRow, rule(w), ''];
   const border = `${rule(cell)}${cross}${rule(w - cell - 1)}`;
   return [
@@ -257,7 +266,7 @@ export function buttonBar(buttons, width, { focus = null, info = '', s = style }
     if (b.id && b.id === focus) look = s.inverse + s.bold;
     else if (b.active) look = s.bold + s.underline;
     else if (b.id && !b.disabled) look = '';
-    const key = look === '' ? `${s.amber}${b.key}${s.reset}` : b.key;
+    const key = look === '' ? `${s.accent}${b.key}${s.reset}` : b.key;
     line += `${look} ${key}${withLabel && b.label ? ' ' + b.label : ''} ${s.reset} `;
     col += visibleLength(t) + 1;
   }

@@ -27,7 +27,7 @@ export function buildTimeline(events) {
   };
 
   for (const ev of events) {
-    if (ev.type === 'session_end') { session = { ended_at: ev.ts, exit_code: ev.exit_code }; continue; }
+    if (ev.type === 'session_end') { session = { ended_at: ev.ts, exit_code: ev.exit_code, interrupted: Boolean(ev.interrupted) }; continue; }
     if (ev.type !== 'step') continue;
     const current = open.get(ev.step_id);
     const running = current?.status === 'running';
@@ -84,11 +84,18 @@ function newEntry(ev, status) {
   };
 }
 
+// Vérification isolée : une ligne née d'un « validate » (sur la fonctionnalité ou sans
+// étape ouverte), sans durée propre. Une partie en cours fermée par « validate » a,
+// elle, un début et une fin comme les autres.
+export function isStandaloneCheck(entry) {
+  return entry.status === 'validated' && entry.end_ts === entry.ts;
+}
+
 // Commandes observées (hooks) survenues pendant la vie d'une entrée.
 export function observedFor(entry, observed, allEntries) {
   const from = Date.parse(entry.ts);
-  let to = entry.end_ts ? Date.parse(entry.end_ts) : Infinity;
-  if (entry.status === 'validated') {
+  const to = entry.end_ts ? Date.parse(entry.end_ts) : Infinity;
+  if (isStandaloneCheck(entry)) {
     // Un « validate » arrive après la commande : on regarde depuis l'événement précédent.
     const idx = allEntries.indexOf(entry);
     const prevTimes = allEntries.slice(0, idx).flatMap((e) => [e.ts, e.end_ts]).filter(Boolean).map(Date.parse).filter((t) => t < from);
@@ -106,7 +113,7 @@ export function isTestOrBuild(command) {
   return TEST_RE.test(command || '');
 }
 
-// Recoupement léger (§10) : si l'agent déclare une étape réalisée ou vérifiée
+// Recoupement léger : si l'agent déclare une étape réalisée ou vérifiée
 // alors que la dernière commande de test/compilation observée a échoué, on
 // affiche ce fait précis sous la ligne plutôt qu'une conclusion avantageuse.
 export function annotate(entries, observed) {

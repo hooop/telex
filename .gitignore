@@ -1,2 +1,11 @@
 node_modules/
+coverage/
+*.log
+*.tgz
 .DS_Store
+
+# Secrets et réglages locaux, jamais versionnés
+.env
+.env.*
+!.env.example
+.claude/settings.local.json

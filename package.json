@@ -1,11 +1,18 @@
 {
   "name": "telex",
   "version": "0.1.0",
-  "description": "Le second terminal qui explique en direct ce qu'un agent de développement est en train de construire.",
+  "description": "Le second terminal qui explique en direct ce que Claude Code ou Codex est en train de construire.",
+  "keywords": ["claude-code", "codex", "mcp", "cli", "terminal", "timeline", "agent"],
+  "homepage": "https://github.com/hooop/telex#readme",
+  "bugs": { "url": "https://github.com/hooop/telex/issues" },
+  "repository": { "type": "git", "url": "git+https://github.com/hooop/telex.git" },
+  "license": "MIT",
+  "author": "Emmanuel",
   "type": "module",
   "bin": { "telex": "bin/telex.js" },
-  "engines": { "node": ">=20" },
+  "files": ["bin/", "src/"],
+  "engines": { "node": ">=22" },
+  "os": ["darwin", "linux"],
   "scripts": { "test": "node --test test/*.test.js" },
-  "license": "UNLICENSED",
   "private": true
 }

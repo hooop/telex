@@ -1,0 +1,4 @@
+# Faux positifs : valeurs factices des tests de masquage (premier commit du dépôt).
+f2f4fcd32d12e072d6ac3ae72f8f24fdf564d2aa:test/mcp.test.js:generic-api-key:37
+f2f4fcd32d12e072d6ac3ae72f8f24fdf564d2aa:test/redact.test.js:generic-api-key:6
+f2f4fcd32d12e072d6ac3ae72f8f24fdf564d2aa:test/redact.test.js:generic-api-key:8

@@ -36,18 +36,25 @@ test('les étapes futures n’existent pas avant leur début', () => {
 });
 
 test('erreur et approche remplacée restent visibles', () => {
-  const out = staticTimeline({ meta: { project: 'needle', agent: 'claude' }, ...buildTimeline(events) }, 80);
-  assert.match(out, /✕  Configurer l’accès à Resend/);
-  assert.match(out, /–  Conserver les tokens en mémoire/);
-  assert.match(out, /✓  Corriger la configuration de Resend/);
+  const out = staticTimeline({ meta: { project: 'demo', agent: 'claude' }, ...buildTimeline(events) }, 80);
+  assert.match(out, /✕\s{2}Configurer l’accès à Resend/);
+  assert.match(out, /–\s{2}Conserver les tokens en mémoire/);
+  assert.match(out, /✓\s{2}Corriger la configuration de Resend/);
   assert.match(out, /RESEND_API_KEY introuvable/);
 });
 
 test('fin de session et bilan', () => {
   const ended = [...events, { type: 'session_end', ts: '2026-09-22T14:50:00Z', exit_code: 0 }];
-  const out = staticTimeline({ meta: { project: 'needle', agent: 'claude' }, ...buildTimeline(ended) }, 80);
+  const out = staticTimeline({ meta: { project: 'demo', agent: 'claude' }, ...buildTimeline(ended) }, 80);
   assert.match(out, /SESSION TERMINÉE/);
   assert.match(out, /Bilan : 2 étapes réalisées · 1 vérification exécutée · 1 erreur · 1 approche remplacée · 2 non terminées/);
+});
+
+test('session interrompue : signalée comme telle', () => {
+  const cut = [...events, { type: 'session_end', ts: '2026-09-22T14:50:00Z', exit_code: null, interrupted: true }];
+  const { session, entries } = buildTimeline(cut);
+  assert.equal(session.interrupted, true);
+  assert.match(staticTimeline({ meta: { project: 'demo', agent: 'claude' }, session, entries }, 80), /SESSION INTERROMPUE/);
 });
 
 test('recoupement : une vérification déclarée après un test observé en échec est signalée', async () => {
@@ -92,4 +99,21 @@ test('fail sur la fonctionnalité crée une ligne ✕ propre ; la fonctionnalit�
     ['Test formatPrice en échec', 'failed'],
     ['Valider les tests', 'validated'],
   ]);
+});
+
+test('recoupement : une partie en cours fermée par validate est jugée sur sa propre durée', async () => {
+  const { annotate, observedFor } = await import('../src/timeline.js');
+  const { entries } = buildTimeline([
+    ev(1, 'start', 'panier', { feature_id: 'panier' }),
+    ev(2, 'start', 'tests', { feature_id: 'panier' }),
+    ev(9, 'validate', 'tests', { feature_id: 'panier', narrative: '7 tests passent' }),
+  ]);
+  const tests = entries[1];
+  const observed = [
+    { type: 'command', ts: '2026-09-22T10:00:01.500Z', command: 'npm test', ok: true }, //  avant la partie
+    { type: 'command', ts: '2026-09-22T10:00:05Z', command: 'npm test', ok: false }, //     pendant la partie
+  ];
+  assert.deepEqual(observedFor(tests, observed, entries).map((o) => o.ts), ['2026-09-22T10:00:05Z']);
+  annotate(entries, observed);
+  assert.match(tests.fact_note, /la dernière commande de vérification a échoué \(npm test\)/);
 });

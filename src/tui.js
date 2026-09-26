@@ -1,22 +1,24 @@
 // Interface interactive de la timeline (terminal, sans dépendance).
 import path from 'node:path';
-import { readMeta, tailJsonl } from './store.js';
-import { annotate, buildTimeline, isTestOrBuild, observedFor } from './timeline.js';
+import { readMeta, refreshSession, tailJsonl } from './store.js';
+import { annotate, buildTimeline, isStandaloneCheck, isTestOrBuild, observedFor, SYMBOL } from './timeline.js';
 import { Workspace } from './workspace.js';
 import { redact } from './redact.js';
+import { sanitize } from './sanitize.js';
+import { agentLabel } from './agents.js';
 import { buttonBar, clock, duration, entryLines, footerSummary, header, previewLines, separator, SPINNER_TICKS, STATUS_LABEL, style as s, visibleLength, wrap } from './render.js';
-import { SYMBOL } from './timeline.js';
 
+const LIVENESS_EVERY_MS = 2000; // vérification que l'agent tourne encore
 
-const AGENT_LABEL = { claude: 'Claude Code', codex: 'Codex' };
-
-export function runTui(sessionDir, { onQuit } = {}) {
-  const out = process.stdout;
-  const stdin = process.stdin;
+// `input` et `output` sont injectables pour les tests. `onFatal` reçoit une erreur
+// inattendue, une fois le terminal restauré. `notice` : message initial en bas d'écran.
+export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = null, input = process.stdin, output = process.stdout } = {}) {
+  const out = output;
+  const stdin = input;
   let meta = readMeta(sessionDir);
   let events = [];
   let observed = [];
-  let timeline = { entries: [], session: { ended_at: meta.ended_at } };
+  let timeline = { entries: [], session: { ended_at: meta.ended_at, interrupted: meta.interrupted } };
   let selected = -1;
   let follow = true;
   let unseen = 0;
@@ -26,6 +28,8 @@ export function runTui(sessionDir, { onQuit } = {}) {
   let focus = null; // bouton du menu en surbrillance (flèches ← →)
   let workspace = null;
   let tick = 0; // image courante de l'animation de l'en-tête
+  let notice = initialNotice; // dernière erreur ou information, affichée au-dessus du menu
+  let snapshotError = null; // dernière erreur d'instantané, citée dans les détails
   const diffCache = new Map();
 
   const ws = () => (workspace ??= new Workspace(sessionDir, meta.cwd));
@@ -37,7 +41,29 @@ export function runTui(sessionDir, { onQuit } = {}) {
     const after = timeline.entries.length;
     if (follow) selected = after - 1;
     else if (after > before) unseen += after - before;
-    if (timeline.session.ended_at) { try { meta = readMeta(sessionDir); } catch { /* ignore */ } }
+    if (timeline.session.ended_at) { try { meta = readMeta(sessionDir); } catch { /* méta illisible : on garde la précédente */ } }
+  }
+
+  function onErrors(items) {
+    const last = items.at(-1);
+    if (last.source === 'instantanés') snapshotError = last.message;
+    notice = `erreur telex (${last.source}) : ${last.message}`;
+    render();
+  }
+
+  function onReadError(err) {
+    const message = `lecture impossible (${err.code || err.message})`;
+    if (notice !== message) { notice = message; render(); }
+  }
+
+  // Une fenêtre d'agent tuée sans que la fin soit enregistrée : on le constate ici.
+  function checkLiveness() {
+    if (timeline.session.ended_at) return;
+    try {
+      refreshSession(meta);
+    } catch (err) {
+      onReadError(err);
+    }
   }
 
   // ─── Vues ────────────────────────────────────────────────────────────────
@@ -49,7 +75,7 @@ export function runTui(sessionDir, { onQuit } = {}) {
       rows.push(separator(width, s));
       starts.push(rows.length);
       const lines = entryLines(entry, width, s, { tick, gutter: 2, compact: true });
-      if (i === selected) lines[0] = `${s.amber}›${s.reset} ` + lines[0].slice(2);
+      if (i === selected) lines[0] = `${s.accent}›${s.reset} ` + lines[0].slice(2);
       rows.push(...lines);
       starts[i] = [starts[i], rows.length - 1];
     });
@@ -59,8 +85,8 @@ export function runTui(sessionDir, { onQuit } = {}) {
 
   function entryFiles(entry) {
     const to = entry.end_tree || latestTreeAfter(entry);
-    if (!entry.start_tree && entry.status !== 'validated') return null;
-    const from = entry.status === 'validated' ? previousTree(entry) : entry.start_tree;
+    if (!entry.start_tree && !isStandaloneCheck(entry)) return null;
+    const from = isStandaloneCheck(entry) ? previousTree(entry) : entry.start_tree;
     return { from, to, changes: from && to ? ws().changes(from, to) : null };
   }
 
@@ -69,6 +95,10 @@ export function runTui(sessionDir, { onQuit } = {}) {
     const t = Date.parse(entry.ts);
     const later = events.filter((e) => e.tree && Date.parse(e.ts) > t);
     return later.at(-1)?.tree || null;
+  }
+
+  function unavailable() {
+    return snapshotError ? `Instantané indisponible : ${snapshotError}` : 'Instantané indisponible pour cette étape.';
   }
 
   function previousTree(entry) {
@@ -81,26 +111,26 @@ export function runTui(sessionDir, { onQuit } = {}) {
     const w = width - 4;
     const rows = [];
     const sec = (title) => { rows.push('', `${s.bold}${title}${s.reset}`); };
-    const color = { running: s.amber, done: s.green, validated: s.green, failed: s.red, replaced: s.gray }[entry.status];
+    const color = { running: s.accent, done: s.ok, validated: s.ok, failed: s.error, replaced: s.muted }[entry.status];
     rows.push(...wrap(entry.title, w).map((l) => `${s.bold}${l}${s.reset}`));
     let when = `${color}${SYMBOL[entry.status]} ${STATUS_LABEL[entry.status]}${s.reset}   ${s.dim}début${s.reset} ${clock(entry.ts)}`;
-    if (entry.end_ts && entry.status !== 'validated') {
+    if (entry.end_ts && !isStandaloneCheck(entry)) {
       const secs = Math.round((Date.parse(entry.end_ts) - Date.parse(entry.ts)) / 1000);
       when += `   ${s.dim}fin${s.reset} ${clock(entry.end_ts)}   ${s.dim}(${duration(secs)})${s.reset}`;
     }
     rows.push(when);
     if (entry.narrative) rows.push('', ...wrap(entry.narrative, w));
-    if (entry.technical_detail) { sec('Technique'); rows.push(...wrap(entry.technical_detail, w).map((l) => `${s.gray}${l}${s.reset}`)); }
+    if (entry.technical_detail) { sec('Technique'); rows.push(...wrap(entry.technical_detail, w).map((l) => `${s.muted}${l}${s.reset}`)); }
 
     sec('Fichiers concernés');
     const files = entryFiles(entry);
     if (!files || !files.to) {
-      rows.push(`${s.dim}${entry.status === 'running' ? 'Étape en cours : les fichiers seront comparés à sa fin.' : 'Instantané indisponible pour cette étape.'}${s.reset}`);
+      rows.push(`${s.dim}${entry.status === 'running' ? 'Étape en cours : les fichiers seront comparés à sa fin.' : unavailable()}${s.reset}`);
     } else if (!files.changes?.length) {
-      rows.push(`${s.dim}Aucun fichier modifié ${entry.status === 'validated' ? 'depuis l’événement précédent' : 'entre le début et la fin de l’étape'}.${s.reset}`);
+      rows.push(`${s.dim}Aucun fichier modifié ${isStandaloneCheck(entry) ? 'depuis l’événement précédent' : 'entre le début et la fin de l’étape'}.${s.reset}`);
     } else {
       const label = { A: 'ajouté  ', M: 'modifié ', D: 'supprimé' };
-      for (const c of files.changes) rows.push(`${s.dim}${label[c.status[0]] || c.status}${s.reset}  ${c.path}`);
+      for (const c of files.changes) rows.push(`${s.dim}${label[c.status[0]] || c.status}${s.reset}  ${sanitize(c.path)}`);
     }
 
     const cmds = observedFor(entry, observed, timeline.entries);
@@ -115,25 +145,24 @@ export function runTui(sessionDir, { onQuit } = {}) {
     }
 
     sec('Origine');
-    const agent = AGENT_LABEL[entry.source] || entry.source;
+    const agent = agentLabel(entry.source);
     rows.push(...wrap(`Titre et récit : écrits par ${agent} via l’outil timeline. Fichiers : instantanés pris par telex à chaque événement.${meta.agent === 'claude' ? ' Commandes : hook PostToolUse de Claude Code.' : ''}`, w).map((l) => `${s.dim}${l}${s.reset}`));
 
     sec(`Événements bruts ${s.dim}[R] ${showRaw ? 'masquer' : 'afficher'}${s.reset}`);
     if (showRaw) {
       for (const u of entry.updates) {
-        const { tree, ...rest } = u;
-        rows.push(...wrap(JSON.stringify(rest), w).map((l) => `${s.gray}${l}${s.reset}`));
+        rows.push(...wrap(JSON.stringify({ ...u, tree: undefined }), w).map((l) => `${s.muted}${l}${s.reset}`));
       }
     }
     return rows;
   }
 
   function commandLine(c, w, withOutput) {
-    const mark = c.ok ? `${s.green}✓${s.reset}` : `${s.red}✕${s.reset}`;
-    const rows = wrap(c.command, w - 13).map((l, i) => (i ? ' '.repeat(13) : `${s.gray}${clock(c.ts)}${s.reset}  ${mark}  `) + l);
+    const mark = c.ok ? `${s.ok}✓${s.reset}` : `${s.error}✕${s.reset}`;
+    const rows = wrap(c.command, w - 13).map((l, i) => (i ? ' '.repeat(13) : `${s.muted}${clock(c.ts)}${s.reset}  ${mark}  `) + l);
     if (withOutput && c.output_tail) {
-      const tail = c.output_tail.split('\n').filter((l) => l.trim()).slice(-12);
-      for (const l of tail) rows.push(`${' '.repeat(13)}${s.gray}${[...l].slice(0, w - 13).join('')}${s.reset}`);
+      const tail = sanitize(c.output_tail).split('\n').filter((l) => l.trim()).slice(-12);
+      for (const l of tail) rows.push(`${' '.repeat(13)}${s.muted}${[...l].slice(0, w - 13).join('')}${s.reset}`);
       rows.push('');
     }
     return rows;
@@ -141,21 +170,21 @@ export function runTui(sessionDir, { onQuit } = {}) {
 
   function diffRows(entry, width) {
     const files = entryFiles(entry);
-    const rows = [`${s.bold}Diff : ${entry.title}${s.reset}`, ''];
+    const rows = [`${s.bold}Diff : ${sanitize(entry.title)}${s.reset}`, ''];
     if (!files?.from || !files?.to) {
-      rows.push(`${s.dim}${entry.status === 'running' ? 'Étape en cours : le diff sera disponible à sa fin.' : 'Instantané indisponible pour cette étape.'}${s.reset}`);
+      rows.push(`${s.dim}${entry.status === 'running' ? 'Étape en cours : le diff sera disponible à sa fin.' : unavailable()}${s.reset}`);
       return rows;
     }
     const key = `${files.from}..${files.to}`;
-    if (!diffCache.has(key)) diffCache.set(key, redact(ws().diff(files.from, files.to)));
+    if (!diffCache.has(key)) diffCache.set(key, redact(sanitize(ws().diff(files.from, files.to))));
     const diff = diffCache.get(key);
     if (!diff.trim()) { rows.push(`${s.dim}Aucune modification de fichier pendant cette étape.${s.reset}`); return rows; }
     for (const l of diff.split('\n')) {
       const t = [...l].slice(0, width - 1).join('');
       if (l.startsWith('+++') || l.startsWith('---') || l.startsWith('diff ') || l.startsWith('index ')) rows.push(`${s.bold}${t}${s.reset}`);
-      else if (l.startsWith('+')) rows.push(`${s.green}${t}${s.reset}`);
-      else if (l.startsWith('-')) rows.push(`${s.red}${t}${s.reset}`);
-      else if (l.startsWith('@@')) rows.push(`${s.cyan}${t}${s.reset}`);
+      else if (l.startsWith('+')) rows.push(`${s.ok}${t}${s.reset}`);
+      else if (l.startsWith('-')) rows.push(`${s.error}${t}${s.reset}`);
+      else if (l.startsWith('@@')) rows.push(`${s.accent}${t}${s.reset}`);
       else rows.push(t);
     }
     return rows;
@@ -168,7 +197,7 @@ export function runTui(sessionDir, { onQuit } = {}) {
     if (checks.length) {
       rows.push(`${s.bold}Vérifications déclarées par l’agent${s.reset}`);
       for (const c of checks) {
-        rows.push(`${s.gray}${clock(c.ts)}${s.reset}  ${s.green}✓${s.reset}  ${c.title}`);
+        rows.push(`${s.muted}${clock(c.ts)}${s.reset}  ${s.ok}✓${s.reset}  ${sanitize(c.title)}`);
         if (c.narrative) rows.push(...wrap(c.narrative, w - 13).map((l) => ' '.repeat(13) + `${s.dim}${l}${s.reset}`));
       }
       rows.push('');
@@ -180,7 +209,7 @@ export function runTui(sessionDir, { onQuit } = {}) {
     const all = observed.filter((o) => o.type === 'command' && isTestOrBuild(o.command));
     const mine = entry ? observedFor(entry, all, timeline.entries) : [];
     if (entry) {
-      rows.push(`${s.bold}Pendant « ${entry.title} »${s.reset}`);
+      rows.push(`${s.bold}Pendant « ${sanitize(entry.title)} »${s.reset}`);
       if (!mine.length) rows.push(`${s.dim}Aucune commande de test ou de compilation observée pendant cette étape.${s.reset}`, '');
       for (const c of mine) rows.push(...commandLine(c, w, true));
     }
@@ -196,6 +225,7 @@ export function runTui(sessionDir, { onQuit } = {}) {
   // ─── Rendu ───────────────────────────────────────────────────────────────
 
   function render() {
+    if (closed) return;
     const width = Math.max(40, out.columns || 80);
     const height = Math.max(10, out.rows || 24);
     const head = headLines(width);
@@ -225,7 +255,7 @@ export function runTui(sessionDir, { onQuit } = {}) {
         }
       }
       body = rows.slice(top, top + bodyHeight);
-      if (!follow && unseen) body[body.length - 1] = `  ${s.amber}↓ ${unseen} nouvelle${unseen > 1 ? 's' : ''} étape${unseen > 1 ? 's' : ''} — [Fin] pour suivre${s.reset}`;
+      if (!follow && unseen) body[body.length - 1] = `  ${s.accent}↓ ${unseen} nouvelle${unseen > 1 ? 's' : ''} étape${unseen > 1 ? 's' : ''} — [Fin] pour suivre${s.reset}`;
       if (panelHeight) {
         while (body.length < bodyHeight) body.push('');
         body.push(...previewLines(entry, { index: selected, count: n, width, height: panelHeight, s }));
@@ -240,7 +270,9 @@ export function runTui(sessionDir, { onQuit } = {}) {
     }
 
     while (body.length < height - head.length - 2) body.push('');
-    const frame = [...head, ...body, '', buttonBar(buttons(), width, { focus: focusedId(), info })];
+    // La ligne au-dessus du menu affiche la dernière erreur ou information, s'il y en a une.
+    const status = notice ? `  ${s.error}⚠ ${sanitize(notice)}${s.reset}` : '';
+    const frame = [...head, ...body, status, buttonBar(buttons(), width, { focus: focusedId(), info })];
     out.write('\x1b[H' + frame.map((l) => clip(l, width) + '\x1b[K').join('\n') + '\x1b[J');
   }
 
@@ -250,6 +282,7 @@ export function runTui(sessionDir, { onQuit } = {}) {
 
   // Anime l'en-tête seul : on réécrit ses lignes sans toucher au reste de l'écran.
   function animate() {
+    if (closed) return;
     tick++;
     // Le rond d'une étape en cours change de moitié : il faut redessiner le corps.
     if (tick % SPINNER_TICKS === 0 && view === 'timeline' && timeline.entries.some((e) => e.status === 'running')) return render();
@@ -354,6 +387,7 @@ export function runTui(sessionDir, { onQuit } = {}) {
       else if (key === '\x1b[F' || key === 'G' || key === ' ') { move(Infinity); }
       else if (k === 'd') open('diff');
       else if (k === 't') open('tests');
+      else if (key === '\x1b') notice = null; // Échap efface le message d'erreur
     } else {
       if (key === '\x1b' || k === 'q' || key === '\x7f') ACTIONS.back();
       else if (key === '\x1b[A' || k === 'k') viewScroll = Math.max(0, viewScroll - 1);
@@ -369,27 +403,57 @@ export function runTui(sessionDir, { onQuit } = {}) {
 
   // ─── Cycle de vie ────────────────────────────────────────────────────────
 
+  // Le terminal est toujours rendu dans son état normal (curseur, écran principal,
+  // mode ligne), que l'on quitte, que l'on reçoive un signal ou qu'une erreur survienne.
   const stops = [];
-  function quit() {
-    stops.forEach((f) => f());
+  let closed = false;
+  function restore() {
+    if (closed) return;
+    closed = true;
+    for (const stop of stops) { try { stop(); } catch { /* on restaure le reste quand même */ } }
     out.write('\x1b[?25h\x1b[?1049l');
     if (stdin.isTTY) stdin.setRawMode(false);
     stdin.pause();
+  }
+  function quit() {
+    restore();
     onQuit?.();
   }
+  function fatal(err) {
+    restore();
+    if (onFatal) onFatal(err);
+    else throw err;
+  }
 
+  process.on('SIGTERM', quit);
+  process.on('SIGHUP', quit);
+  process.on('uncaughtException', fatal);
+  stops.push(() => {
+    process.off('SIGTERM', quit);
+    process.off('SIGHUP', quit);
+    process.off('uncaughtException', fatal);
+  });
+
+  const onData = (data) => {
+    // Plusieurs touches peuvent arriver dans le même paquet.
+    for (const key of data.match(/\x1b\[[0-9;]*[~A-Za-z]|\x1bO[A-Z]|[\s\S]/g) || []) {
+      if (closed) return;
+      onKey(key.replace(/^\x1bO/, '\x1b['));
+    }
+  };
   out.write('\x1b[?1049h\x1b[?25l\x1b[H\x1b[2J');
   if (stdin.isTTY) stdin.setRawMode(true);
   stdin.setEncoding('utf8');
-  stdin.on('data', (data) => {
-    // Plusieurs touches peuvent arriver dans le même paquet.
-    for (const key of data.match(/\x1b\[[0-9;]*[~A-Za-z]|\x1bO[A-Z]|[\s\S]/g) || []) onKey(key.replace(/^\x1bO/, '\x1b['));
-  });
+  stdin.on('data', onData);
   out.on('resize', render);
-  stops.push(tailJsonl(path.join(sessionDir, 'events.jsonl'), (items) => { events.push(...items); rebuild(); render(); }));
-  stops.push(tailJsonl(path.join(sessionDir, 'observed.jsonl'), (items) => { observed.push(...items); annotate(timeline.entries, observed); render(); }));
+  stops.push(() => { stdin.off('data', onData); out.off('resize', render); });
+  stops.push(tailJsonl(path.join(sessionDir, 'events.jsonl'), (items) => { events.push(...items); rebuild(); render(); }, onReadError));
+  stops.push(tailJsonl(path.join(sessionDir, 'observed.jsonl'), (items) => { observed.push(...items); annotate(timeline.entries, observed); render(); }, onReadError));
+  stops.push(tailJsonl(path.join(sessionDir, 'errors.jsonl'), onErrors, onReadError));
   const animation = setInterval(animate, 140);
-  stops.push(() => clearInterval(animation));
+  const liveness = setInterval(checkLiveness, LIVENESS_EVERY_MS);
+  stops.push(() => { clearInterval(animation); clearInterval(liveness); });
   render();
+  return { quit };
 }
 

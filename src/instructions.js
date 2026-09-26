@@ -1,8 +1,16 @@
 // Consignes transmises à l'agent (Claude Code : --append-system-prompt ;
 // Codex : developer_instructions). Elles doivent rester courtes : elles sont
 // relues à chaque tour et coûtent des tokens.
+import fs from 'node:fs';
+import path from 'node:path';
+import { TELEX_HOME } from './store.js';
+import { TelexError } from './errors.js';
 
 export const TOOL_NAME = 'timeline';
+
+// Consignes propres à l'utilisateur, ajoutées à la suite des consignes par défaut.
+export const USER_INSTRUCTIONS_FILE = path.join(TELEX_HOME, 'instructions.md');
+const MAX_USER_INSTRUCTIONS = 4000;
 
 export const AGENT_INSTRUCTIONS = `\
 # Timeline telex
@@ -32,6 +40,17 @@ Découpage :
 - une partie par changement que l'utilisateur pourrait vérifier séparément : un comportement, un composant, un module modifié, une route, une migration, un lot de tests. Une demande qui touche plusieurs fichiers ou comportements compte en général 3 à 6 parties ; une seule ligne ne suffit que pour une modification d'un seul endroit ;
 - quand tu établis un diagnostic (cause d'un bug, raison d'un comportement) ou choisis entre plusieurs approches, ouvre une partie dédiée (« Diagnostiquer… », « Choisir… ») : start puis complete, dont le récit donne le constat ou la décision et sa raison ;
 - ouvre chaque partie au moment où tu t'y mets et ferme-la dès qu'elle est finie, pas toutes à la fin ; si le plan change en route, ouvre les nouvelles parties au fil de l'eau.`;
+
+// Consignes par défaut, complétées par celles de ~/.telex/instructions.md s'il existe.
+export function agentInstructions() {
+  let extra = '';
+  try {
+    extra = fs.readFileSync(USER_INSTRUCTIONS_FILE, 'utf8').trim().slice(0, MAX_USER_INSTRUCTIONS);
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw new TelexError(`lecture impossible de ${USER_INSTRUCTIONS_FILE} (${err.code || err.message})`, { cause: err });
+  }
+  return extra ? `${AGENT_INSTRUCTIONS}\n\n## Consignes supplémentaires de l'utilisateur\n\n${extra}` : AGENT_INSTRUCTIONS;
+}
 
 export const TOOL_DESCRIPTION = `\
 Met à jour la timeline telex que l'utilisateur lit dans un second terminal. \
