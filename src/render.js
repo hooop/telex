@@ -128,23 +128,63 @@ export function staticTimeline({ meta, entries, session }, width = 80, s = plain
 }
 
 // ─── En-tête ───────────────────────────────────────────────────────────────
-// Façade de téléscripteur : un cadre en filets, une plaque signalétique pour le
-// logo, des voyants en majuscules et, sous l'appareil, une bande perforée.
-// Sans `tick`, l'en-tête est statique (replay --print, tests). Avec `tick`
-// (compteur d'images de l'interface), le logo se frappe lettre par lettre sur
-// sa plaque puis, tant que la session est en direct, le dégradé de la plaque
-// ondule, un reflet la parcourt, le voyant pulse et la bande défile.
+// Des cases en tirets : la mascotte dans la sienne et, à sa droite, le logo avec
+// le voyant en haut à droite, puis, sous un filet, la fiche de la session.
+// Sans `tick`, l'en-tête est statique (replay --print,
+// tests). Avec `tick` (compteur d'images de l'interface), le logo se frappe
+// lettre par lettre puis, tant que la session est en direct, la mascotte cligne
+// des yeux et le voyant pulse.
 
 const LOGO = 'TELEX';
-const LOGO_GRADIENT = [230, 224, 225, 189, 195]; // crème → rose → lavande → bleu pâle
 const PULSE = [240, 244, 248, 252, 230, 230, 252, 248, 244, 240];
-const PLATE_INK = 236; // lettres gravées sur la plaque
-const PLATE_BLANK = 238; // emplacement pas encore frappé
-const TAPE_INK = 230;
 export const HEADER_LINES = 6;
 
-const fg = (s, n) => (s.reset ? `${ESC}38;5;${n}m` : '');
-const bg = (s, n) => (s.reset ? `${ESC}48;5;${n}m` : '');
+// Une couleur est un numéro de la palette 256 ou une valeur hexadécimale « #rrggbb ».
+// L'hexadécimal s'affiche en 24 bits si le terminal les annonce (COLORTERM),
+// sinon avec la teinte la plus proche de la palette 256.
+const TRUECOLOR = /^(truecolor|24bit)$/i.test(process.env.COLORTERM || '');
+const CUBE = [0, 95, 135, 175, 215, 255]; // niveaux du cube 6 × 6 × 6 (couleurs 16 à 231)
+
+function palette256(rgb) {
+  const near = (v) => CUBE.reduce((best, c, i) => (Math.abs(c - v) < Math.abs(CUBE[best] - v) ? i : best), 0);
+  const cube = rgb.map(near);
+  const level = Math.max(0, Math.min(23, Math.round(((rgb[0] + rgb[1] + rgb[2]) / 3 - 8) / 10))); // gris 232 à 255
+  const gray = 8 + 10 * level;
+  const dist = (other) => rgb.reduce((d, v, i) => d + (v - other[i]) ** 2, 0);
+  return dist(cube.map((i) => CUBE[i])) <= dist([gray, gray, gray]) ? 16 + 36 * cube[0] + 6 * cube[1] + cube[2] : 232 + level;
+}
+
+function sgr(layer, color) {
+  if (typeof color === 'number') return `${ESC}${layer};5;${color}m`;
+  const rgb = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
+  return TRUECOLOR ? `${ESC}${layer};2;${rgb.join(';')}m` : `${ESC}${layer};5;${palette256(rgb)}m`;
+}
+
+const fg = (s, color) => (s.reset ? sgr(38, color) : '');
+const bg = (s, color) => (s.reset ? sgr(48, color) : '');
+
+// Mascotte : une tête de 6 × 6 cases, visière sombre, deux yeux d'une case sur
+// deux de haut, et deux oreilles larges d'une demi-case. Une case occupe une
+// colonne sur une demi-ligne (▀ ▄), ce qui la garde à peu près carrée ; les
+// oreilles sont des demi-blocs verticaux (▐ ▌). Sans couleurs, la visière reste vide.
+const MASCOT_BODY = 255;
+const MASCOT_VISOR = '#301300';
+const MASCOT_EYE = '#ff9855';
+const MASCOT_WIDTH = 8;
+// Clignement : les yeux se ferment en un trait fin à mi-hauteur pendant BLINK_TICKS
+// images toutes les BLINK_EVERY images (~4 s à 140 ms l'image).
+const BLINK_EVERY = 30;
+const BLINK_TICKS = 1;
+
+function mascot(s, closed) {
+  const body = (text) => `${fg(s, MASCOT_BODY)}${text}${s.reset}`;
+  const eye = `${fg(s, MASCOT_EYE)}${closed ? '─' : '█'}`;
+  return [
+    ` ${body('▄████▄')} `,
+    `${body('▐')}${bg(s, MASCOT_VISOR)} ${eye}  ${eye} ${s.reset}${body('▌')}`,
+    ` ${body('▀████▀')} `,
+  ];
+}
 
 function elapsed(from, to) {
   const secs = Math.max(0, Math.floor((to - Date.parse(from)) / 1000));
@@ -153,50 +193,11 @@ function elapsed(from, to) {
   return `${h ? `${h}:` : ''}${p(Math.floor(secs / 60) % 60)}:${p(secs % 60)}`;
 }
 
-const TYPED = LOGO.length * 2; // images nécessaires pour frapper le logo
-
-// Plaque « T E L E X » : chaque lettre sur un fond de la palette.
-// Sans couleurs, la plaque est simplement entre crochets.
-function plate(s, tick, live) {
+// Logo « T E L E X », frappé lettre par lettre derrière un curseur de télescripteur.
+function logo(s, tick) {
   const shown = tick == null ? LOGO.length : Math.min(LOGO.length, Math.floor(tick / 2) + 1);
-  const moving = live && tick != null && tick >= TYPED;
-  // Le dégradé glisse d'une lettre toutes les 3 images ; un reflet traverse la plaque toutes les ~2 s.
-  const phase = moving ? Math.floor((tick - TYPED) / 3) : 0;
-  const shine = moving ? (tick - TYPED) % 14 : -1;
-  const tint = (i) => (i === shine ? 231 : LOGO_GRADIENT[(i + phase) % LOGO_GRADIENT.length]);
-  const cells = [...LOGO].map((ch, i) => {
-    if (i < shown) return `${bg(s, tint(i))}${fg(s, PLATE_INK)} ${ch}`;
-    // Curseur de télescripteur sur l'emplacement suivant.
-    return `${bg(s, PLATE_BLANK)}${fg(s, 230)} ${i === shown ? '▌' : ' '}`;
-  });
-  const end = `${bg(s, shown === LOGO.length ? tint(LOGO.length - 1) : PLATE_BLANK)} ${s.reset}`;
-  return s.reset ? `${cells.join('')}${end}` : `[${cells.join('')} ]`;
-}
-
-// Code Baudot (ITA2), trous 1 à 5 ; les caractères hors alphabet passent en espace.
-const ITA2 = {
-  A: '11000', B: '10011', C: '01110', D: '10010', E: '10000', F: '10110', G: '01011', H: '00101', I: '01100',
-  J: '11010', K: '11110', L: '01001', M: '00111', N: '00110', O: '00011', P: '01101', Q: '11101', R: '01010',
-  S: '10100', T: '00001', U: '11100', V: '01111', W: '11001', X: '10111', Y: '10101', Z: '10001', ' ': '00100',
-};
-
-// Bande perforée sur deux lignes de braille (8 rangées de points) : bord, trous 1-2,
-// entraînement, trous 3-5, bord. Une colonne de points par caractère.
-function tape(text, width, s, offset) {
-  const codes = [...text.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()].map((ch) => ITA2[ch] ?? ITA2[' ']);
-  const rows = (code) => [false, code[0] === '1', code[1] === '1', true, code[2] === '1', code[3] === '1', code[4] === '1', false];
-  const DOT = [[0x01, 0x02, 0x04, 0x40], [0x08, 0x10, 0x20, 0x80]]; // [colonne][rangée] dans une cellule braille
-  const lines = ['', ''];
-  for (let cell = 0; cell < width; cell++) {
-    const bits = [0, 0];
-    for (const col of [0, 1]) {
-      const r = rows(codes[(cell * 2 + col + offset) % codes.length]);
-      r.forEach((on, row) => { if (on) bits[row >> 2] |= DOT[col][row & 3]; });
-    }
-    lines[0] += String.fromCharCode(0x2800 + bits[0]);
-    lines[1] += String.fromCharCode(0x2800 + bits[1]);
-  }
-  return lines.map((l) => `${fg(s, TAPE_INK)}${s.dim}${l}${s.reset}`);
+  const cursor = shown < LOGO.length ? ` ${fg(s, 230)}▌` : '';
+  return `${s.white}${[...LOGO].slice(0, shown).join(' ')}${cursor}${s.reset}`;
 }
 
 function fit(text, width) {
@@ -206,38 +207,40 @@ function fit(text, width) {
 export function header(meta, session, s = style, width = 80, tick = null) {
   const agent = { claude: 'Claude Code', codex: 'Codex' }[meta.agent] || meta.agent;
   const live = !session.ended_at;
-  const w = Math.max(20, width - 1); // largeur du cadre, une colonne de moins que l'écran
-  const inner = w - 4; // « │ » … « │ »
-  const line = (n) => `${s.gray}${'─'.repeat(Math.max(0, n))}${s.reset}`;
-  const side = `${s.gray}│${s.reset}`;
-  const row = (left, right = '') => {
-    const gap = Math.max(1, inner - visibleLength(left) - visibleLength(right));
-    return `${side} ${left}${' '.repeat(gap)}${right} ${side}`;
-  };
+  const w = Math.max(20, width - 1); // une colonne de moins que l'écran
+  // Sur un terminal trop étroit, la mascotte s'efface pour laisser la place au texte.
+  const blink = live && tick != null && tick % BLINK_EVERY >= BLINK_EVERY - BLINK_TICKS;
+  const cell = MASCOT_WIDTH + 2; // case de la mascotte, avant la barre « | »
+  const face = w >= cell + 2 + 24 ? mascot(s, blink) : null;
+  const room = face ? w - cell - 2 : w; // « | » puis une espace
 
-  // Filet du haut, avec l'étiquette gravée de l'appareil.
-  const label = ' TÉLÉSCRIPTEUR ';
-  const top = w >= label.length + 6
-    ? `${s.gray}╭─${s.reset}${s.dim}${label}${s.reset}${line(w - 3 - label.length)}${s.gray}╮${s.reset}`
-    : `${s.gray}╭${s.reset}${line(w - 2)}${s.gray}╮${s.reset}`;
-
-  const logo = plate(s, tick, live);
+  const title = logo(s, tick);
   const dot = live ? `${fg(s, tick == null ? 230 : PULSE[tick % PULSE.length])}●${s.reset}` : `${s.gray}■${s.reset}`;
   const state = live ? `${fg(s, 230)}EN DIRECT${s.reset}` : `${s.gray}SESSION TERMINÉE${s.reset}`;
   const chrono = meta.started_at && (tick != null || !live)
     ? `  ${fg(s, 195)}${elapsed(meta.started_at, live ? Date.now() : Date.parse(session.ended_at))}${s.reset}` : '';
   let badge = `${dot} ${state}${chrono}`;
-  if (visibleLength(logo) + visibleLength(badge) + 1 > inner) badge = `${dot} ${state}`;
-  if (visibleLength(logo) + visibleLength(badge) + 1 > inner) badge = dot;
+  if (visibleLength(title) + 1 + visibleLength(badge) > room) badge = `${dot} ${state}`;
+  if (visibleLength(title) + 1 + visibleLength(badge) > room) badge = dot;
+  const top = `${title}${' '.repeat(Math.max(1, room - visibleLength(title) - visibleLength(badge)))}${badge}`;
 
-  const project = fit(String(meta.project), Math.max(4, inner - 30));
+  const project = fit(String(meta.project), Math.max(4, room - 31));
   const info = `${s.dim}PROJET ▸${s.reset} ${s.white}${project}${s.reset}   ${s.dim}AGENT ▸${s.reset} ${s.white}${agent}${s.reset}`;
-  const infoRow = visibleLength(info) <= inner ? info : `${s.white}${fit(`${project} · ${agent}`, inner)}${s.reset}`;
+  const infoRow = visibleLength(info) <= room ? info : `${s.white}${fit(`${meta.project} · ${agent}`, room)}${s.reset}`;
 
-  const bottom = `${s.gray}╰${s.reset}${line(w - 2)}${s.gray}╯${s.reset}`;
-  // La bande sort de l'appareil et avance d'une colonne par image tant que la session est en direct.
-  const feed = live && tick != null ? tick : 0;
-  return [top, row(logo, badge), row(infoRow), bottom, ...tape(`TELEX ${meta.project} ${agent} `, w, s, feed)];
+  const rule = (n) => `${s.gray}${'-'.repeat(Math.max(0, n))}${s.reset}`;
+  const cross = `${s.gray}+${s.reset}`;
+  const bar = `${s.gray}|${s.reset}`;
+  if (!face) return [rule(w), top, rule(w), infoRow, rule(w), ''];
+  const border = `${rule(cell)}${cross}${rule(w - cell - 1)}`;
+  return [
+    border,
+    ` ${face[0]} ${bar} ${top}`,
+    ` ${face[1]} ${bar}${rule(w - cell - 1)}`,
+    ` ${face[2]} ${bar} ${infoRow}`,
+    border,
+    '',
+  ];
 }
 
 // Barre de boutons du bas. Chaque bouton : { id, key, label, active, disabled } ;
