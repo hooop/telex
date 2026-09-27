@@ -8,7 +8,7 @@ import { tempDir, waitFor } from './helpers.js';
 const home = tempDir(after, 'telex-launch-');
 process.env.TELEX_HOME = home;
 const { createSession, readJsonl, readMeta, sessionDir, sessionState } = await import('../src/store.js');
-const { ADAPTERS } = await import('../src/adapters/index.js');
+const { ADAPTERS, which } = await import('../src/adapters/index.js');
 const { writeLaunchScript } = await import('../src/cli.js');
 
 // Agent factice : le script lance `sleep 30` à la place du vrai CLI.
@@ -39,7 +39,7 @@ test('script de lancement : shell valide, vrai CLI, fin de session enregistrée'
     const text = fs.readFileSync(script, 'utf8');
     assert.match(text, new RegExp(`'/usr/local/bin/${id}' `));
     assert.match(text, /'x y'/);
-    assert.match(text, / end '\d{8}-\d{6}-[0-9a-f]{4}' "\$code"/);
+    assert.match(text, / end '\d{8}-\d{6}-[0-9a-f]{4}' "\$code" <\/dev\/null >\/dev\/null 2>&1$/m);
     assert.match(text, /^trap : HUP INT TERM$/m);
     assert.ok(text.includes(`export TELEX_HOME='${home}'`));
     assert.equal(fs.statSync(script).mode & 0o777, 0o700);
@@ -60,6 +60,32 @@ test('fenêtre fermée (SIGHUP) : l’agent s’arrête et la fin de session est
   assert.ok(readMeta(dir).ended_at);
   assert.equal(sessionState(readMeta(dir)), 'ended');
   assert.equal(meta.ended_at, null);
+});
+
+// Même scénario, mais dans un vrai pseudo-terminal que l'on ferme, comme une fenêtre :
+// la fin est enregistrée alors que le terminal n'existe plus.
+const PTY_CLOSE = `
+import os, pty, signal, sys, time
+script, ready = sys.argv[1:]
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv('/bin/sh', ['/bin/sh', script])
+while not os.path.exists(ready):
+    time.sleep(0.02)
+os.close(fd)
+os.killpg(pid, signal.SIGHUP)
+os.waitpid(pid, 0)
+`;
+
+test('fenêtre de terminal fermée : la fin est enregistrée malgré le terminal disparu', { skip: !which('python3', process.env.PATH) && 'python3 absent' }, () => {
+  const meta = createSession({ project: 'demo', cwd: home, agent: 'claude' });
+  const dir = sessionDir(meta.id);
+  const ready = path.join(dir, 'ready');
+  const script = writeLaunchScript(dir, meta, FAKE, '/bin/sh', ['-c', `: > '${ready}'; exec /bin/sleep 30`]);
+  execFileSync('python3', ['-c', PTY_CLOSE, script, ready], { env: { ...process.env, TELEX_HOME: home }, timeout: 5000 });
+  const end = readJsonl(path.join(dir, 'events.jsonl')).find((e) => e.type === 'session_end');
+  assert.equal(end?.exit_code, 129);
+  assert.equal(sessionState(readMeta(dir)), 'ended');
 });
 
 test('processus tué sans préavis (SIGKILL) : la session est reconnue comme interrompue', async () => {

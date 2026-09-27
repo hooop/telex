@@ -109,7 +109,7 @@ telex claude        # ou : telex codex
 1. telex crée une session dans `~/.telex/sessions/<id>/`.
 2. Le **vrai** CLI de l'agent s'ouvre dans une nouvelle fenêtre (ou un panneau tmux), titrée `Claude Code · mon-projet · telex`. Vous l'utilisez normalement.
 3. La timeline s'affiche dans le terminal d'origine. Elle reste vide (`Prêt`) jusqu'à ce que l'agent commence une étape.
-4. Quand vous quittez l'agent, la session se termine : l'en-tête passe à `SESSION TERMINÉE` et un bilan s'affiche.
+4. Quand vous quittez l'agent (`/exit`, ou en fermant sa fenêtre), la session se termine : l'en-tête passe à `SESSION TERMINÉE` et un bilan s'affiche. Une tâche finie ne termine pas la session : l'agent attend la demande suivante.
 
 Quitter la timeline (`Q`) n'arrête pas l'agent. Pour la rouvrir : `telex replay last`.
 

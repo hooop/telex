@@ -126,7 +126,9 @@ export function writeLaunchScript(dir, meta, adapter, bin, agentArgs) {
     'clear',
     [shq(bin), ...args.map(shq)].join(' '),
     'code=$?',
-    `${shq(process.execPath)} ${shq(TELEX_BIN)} end ${shq(meta.id)} "$code"`,
+    // Fenêtre fermée, le terminal n'existe plus : node s'arrêterait en erreur (SIGABRT)
+    // avant d'écrire la fin si ses entrées et sorties y restaient reliées.
+    `${shq(process.execPath)} ${shq(TELEX_BIN)} end ${shq(meta.id)} "$code" </dev/null >/dev/null 2>&1`,
     'exit $code',
     '',
   ];
