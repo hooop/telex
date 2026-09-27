@@ -1,0 +1,1927 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GIFs de démonstration · telex</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #12100e;
+  --panel: #1a1613;
+  --raised: #241f1b;
+  --line: #2f2823;
+  --text: #ede6da;
+  --muted: #a0968c;
+  --faint: #74685e;
+  --accent: #ff9855;
+  --accent-ink: #2b1400;
+  --warn: #ffd7a0;
+  --danger: #ff8a7a;
+  --ok: #8bd9a7;
+  --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font: 13px/1.45 var(--ui); display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* En-tête */
+.top { display: flex; align-items: center; gap: 14px; padding: 10px 18px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.brand { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.brand b { font: 600 13px var(--mono); letter-spacing: .35em; }
+.brand span { color: var(--muted); }
+.chip { font: 11px var(--mono); color: var(--faint); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+.status { margin-left: auto; color: var(--muted); font-size: 12px; text-align: right; }
+.status.dirty { color: var(--warn); }
+.status.error { color: var(--danger); }
+.status.ok { color: var(--ok); }
+.status code { font: 11.5px var(--mono); color: var(--text); }
+.btn { border: 1px solid var(--line); background: var(--raised); border-radius: 7px; padding: 6px 12px; white-space: nowrap; }
+.btn:hover:not(:disabled) { border-color: var(--faint); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+.btn.danger { color: var(--danger); }
+.btn.danger.armed { background: var(--danger); border-color: var(--danger); color: #2a0a05; font-weight: 600; }
+
+main { display: grid; grid-template-columns: 440px 1fr; min-height: 0; }
+
+/* Panneau de gauche */
+.panel { overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel); padding-bottom: 40px; }
+.panel-tabs { position: sticky; top: 0; z-index: 2; display: flex; gap: 4px; padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.panel-tabs button { border: 1px solid transparent; background: none; border-radius: 7px; padding: 5px 14px; color: var(--muted); font-weight: 500; }
+.panel-tabs button.on { border-color: var(--line); background: var(--raised); color: var(--text); }
+.group { padding: 14px 18px 4px; border-bottom: 1px solid var(--line); }
+.group h2 { margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; gap: 8px; align-items: baseline; }
+.group h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); font-family: var(--mono); }
+.group h2 .seg { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.group > .note { margin: -4px 0 12px; color: var(--faint); font-size: 11.5px; }
+.field { margin-bottom: 13px; }
+.field-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.field-head label { font-weight: 500; }
+.tag { font-size: 10.5px; color: var(--faint); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+.reset { margin-left: auto; border: 0; background: none; color: var(--faint); padding: 0 2px; font-size: 14px; line-height: 1; visibility: hidden; }
+.field.explicit .reset { visibility: visible; }
+.reset:hover { color: var(--accent); }
+.hint { margin: 4px 0 0; color: var(--faint); font-size: 11.5px; }
+.control { display: flex; align-items: center; gap: 8px; }
+.control input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.num, .hex, .text, .sel, .mini, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 7px; }
+.num { width: 72px; text-align: right; font: 12px var(--mono); }
+.hex { width: 86px; font: 12px var(--mono); }
+.text, .sel { width: 100%; }
+textarea { width: 100%; resize: vertical; }
+.unit { min-width: 24px; color: var(--faint); font-size: 11.5px; }
+input[type=color] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; flex: none; }
+input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+input[type=color]::-webkit-color-swatch { border: 0; border-radius: 4px; }
+input[type=color]::-moz-color-swatch { border: 0; border-radius: 4px; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; flex: none; }
+.seg button { border: 0; background: none; padding: 4px 10px; color: var(--muted); }
+.seg button.on { background: var(--raised); color: var(--text); }
+.seg button + button { border-left: 1px solid var(--line); }
+
+/* Thème */
+.theme-mode { margin-bottom: 12px; }
+.swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin: 10px 0; }
+.swatches span { height: 16px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+.swatch-bg { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; font: 12px var(--mono); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+.theme-list { width: 100%; height: 200px; margin-top: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px; font-size: 12.5px; }
+.theme-list option { padding: 2px 6px; border-radius: 4px; }
+.theme-list option:checked { background: var(--raised); color: var(--text); }
+.colors { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin: 10px 0 8px; }
+.color-row { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+.color-row input[type=color] { width: 28px; height: 22px; }
+.link { border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Actions du scénario */
+.acts { display: grid; gap: 2px; margin: 0 -8px; }
+.act { display: grid; grid-template-columns: 40px 90px minmax(0, 1fr); gap: 6px; align-items: center; padding: 3px 6px 3px 8px; border-radius: 6px; border-left: 2px solid transparent; }
+.act.now { grid-template-columns: 40px 90px minmax(0, 1fr) auto; }
+.act:not(.now) .opt:placeholder-shown { display: none; }
+.act:hover { background: #1f1a17; }
+.act.now { background: var(--raised); border-left-color: var(--accent); }
+.act.masked { opacity: .55; }
+.act .t { font: 11px var(--mono); color: var(--faint); text-align: right; }
+.act.now .t { color: var(--accent); }
+.act .kind { padding: 3px 4px; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+.params { display: flex; gap: 5px; align-items: center; min-width: 0; }
+.params .text { padding: 3px 7px; font-size: 12.5px; min-width: 0; }
+.params .code { font-family: var(--mono); font-size: 12px; }
+.params .sel { width: auto; padding: 3px 4px; font-size: 12px; }
+.mini { width: 58px; padding: 3px 5px; font: 11.5px var(--mono); flex: none; }
+.params .say { color: var(--faint); font-size: 11.5px; font-style: italic; }
+.params .unit { min-width: 0; }
+.tools { display: none; gap: 1px; }
+.act.now .tools { display: flex; }
+.tools button { border: 0; background: none; color: var(--faint); width: 20px; height: 22px; padding: 0; border-radius: 4px; font-size: 12px; }
+.tools button:hover { color: var(--text); background: var(--line); }
+.tools button.del:hover { color: var(--danger); }
+.add { display: flex; gap: 8px; margin: 10px 0 12px; }
+.add .sel { width: auto; }
+.tape-text { min-height: 420px; font: 12px/1.55 var(--mono); white-space: pre; tab-size: 2; }
+
+/* Aperçu */
+.work { display: grid; grid-template-rows: auto 1fr auto auto; min-width: 0; min-height: 0; }
+.work-head { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs button { border: 1px solid transparent; background: none; border-radius: 7px; padding: 5px 12px; color: var(--muted); font: 12.5px var(--mono); }
+.tabs button:hover { color: var(--text); }
+.tabs button.on { border-color: var(--line); background: var(--raised); color: var(--text); }
+.tabs button.modified::after { content: ' •'; color: var(--warn); }
+.newgif { display: flex; gap: 6px; align-items: center; }
+.newgif .text { width: 150px; font: 12.5px var(--mono); padding: 4px 7px; }
+.newgif .sel { width: auto; padding: 4px; }
+.newgif .err { color: var(--danger); font-size: 12px; }
+.spacer { flex: 1; }
+.stage { position: relative; overflow: auto; display: grid; place-items: center; padding: 24px; background: repeating-conic-gradient(#161311 0 25%, #1a1714 0 50%) 0 0 / 24px 24px; }
+.frame-wrap { position: relative; box-shadow: 0 14px 50px rgba(0, 0, 0, .45); }
+.frame { position: absolute; top: 0; left: 0; transform-origin: 0 0; overflow: hidden; }
+.empty { color: var(--muted); }
+.rendu-box { display: grid; justify-items: center; gap: 12px; text-align: center; color: var(--muted); max-width: 100%; }
+.rendu-box img { max-width: 100%; height: auto; display: block; box-shadow: 0 14px 50px rgba(0, 0, 0, .45); }
+.rendu-box pre { max-width: 760px; max-height: 300px; overflow: auto; text-align: left; white-space: pre-wrap; color: var(--danger); font: 12px/1.5 var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+.rendu-meta { font-size: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.badge { font-size: 11px; border-radius: 999px; padding: 1px 8px; border: 1px solid currentColor; }
+.badge.fresh { color: var(--ok); }
+.badge.stale { color: var(--warn); }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+.transport { display: flex; align-items: center; gap: 12px; padding: 8px 18px; border-top: 1px solid var(--line); background: var(--panel); }
+.transport .play { width: 34px; height: 30px; padding: 0; border-radius: 7px; border: 1px solid var(--line); background: var(--raised); font-size: 13px; }
+.transport .play:hover { border-color: var(--faint); }
+.transport input[type=range] { flex: 1; accent-color: var(--accent); }
+.clock { font: 12px var(--mono); color: var(--muted); min-width: 120px; text-align: right; }
+.foot { border-top: 1px solid var(--line); padding: 8px 18px 10px; background: var(--panel); }
+.info { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 12px var(--mono); color: var(--muted); }
+.info .warn { color: var(--warn); font-family: var(--ui); }
+.info .note { color: var(--faint); font-family: var(--ui); }
+details.code summary { cursor: pointer; color: var(--muted); font-size: 12px; margin-top: 6px; width: max-content; }
+details.code pre { max-height: 240px; overflow: auto; margin: 8px 0 0; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font: 11.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-all; }
+.probe { position: absolute; left: -9999px; top: 0; visibility: hidden; white-space: pre; }
+.fatal { padding: 40px; color: var(--danger); }
+
+@media (max-width: 1000px) {
+  body { overflow: auto; display: block; }
+  main { display: block; }
+  .panel { border-right: 0; max-height: none; }
+  .stage { min-height: 60vh; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>TELEX</b><span>GIFs de démonstration</span><span class="chip" id="vhs-version">VHS</span></div>
+  <div class="status" id="status" aria-live="polite"></div>
+  <button class="btn" id="revert" type="button" disabled>Rétablir</button>
+  <button class="btn primary" id="save" type="button" disabled title="Écrit les scénarios et le style dans docs/demo (⌘S)">Enregistrer</button>
+</header>
+<main>
+  <aside class="panel" aria-label="Scénario et style">
+    <div class="panel-tabs" id="panes">
+      <button type="button" data-pane="scenario" class="on">Scénario</button>
+      <button type="button" data-pane="style">Style commun</button>
+    </div>
+    <div id="pane-scenario"></div>
+    <div id="pane-style" hidden></div>
+  </aside>
+  <section class="work">
+    <div class="work-head">
+      <nav class="tabs" id="tabs" aria-label="GIF"></nav>
+      <button class="btn small" id="new-gif" type="button">+ Nouveau GIF</button>
+      <form class="newgif" id="newgif" hidden>
+        <input class="text" name="name" placeholder="nom-du-gif" autocomplete="off" spellcheck="false" aria-label="Nom du nouveau GIF">
+        <select class="sel" name="env" aria-label="Préparation"></select>
+        <button class="btn small primary" type="submit">Créer</button>
+        <button class="btn small" type="button" id="newgif-cancel">Annuler</button>
+        <span class="err" id="newgif-err"></span>
+      </form>
+      <div class="spacer"></div>
+      <div class="seg" id="views">
+        <button type="button" data-view="apercu" class="on">Aperçu</button>
+        <button type="button" data-view="rendu">Rendu VHS</button>
+      </div>
+      <button class="btn" id="render" type="button">Lancer le rendu VHS</button>
+    </div>
+    <div class="stage" id="stage">
+      <div class="frame-wrap" id="frame-wrap"><div class="frame" id="frame"></div></div>
+      <div class="rendu-box" id="rendu-box" hidden></div>
+    </div>
+    <div class="transport" id="transport">
+      <button class="play" id="play" type="button" title="Lire l’aperçu (espace)">▶</button>
+      <input type="range" id="scrub" min="0" max="1" step="0.01" value="1" aria-label="Moment du GIF">
+      <span class="clock" id="clock"></span>
+    </div>
+    <div class="foot">
+      <div class="info" id="info"></div>
+      <details class="code"><summary>style.tape généré</summary><pre id="code"></pre></details>
+    </div>
+  </section>
+</main>
+<span class="probe" id="probe"></span>
+
+<script>
+'use strict';
+
+// ─── Réglages de style (style.tape) ──────────────────────────────────────────
+// `def` : la valeur de VHS quand style.tape ne dit rien. Un réglage resté à sa
+// valeur par défaut n'est pas écrit ; ↺ y revient et retire la ligne.
+
+const GROUPS = [
+  { title: 'Netteté', custom: 'scale' },
+  { title: 'Fenêtre', fields: [
+    { key: 'Width', label: 'Largeur', kind: 'number', unit: 'px', min: 400, max: 2400, step: 10, def: 1200,
+      hint: 'GitHub affiche les images à environ 880 px : plus le GIF est large, plus le texte y paraît petit. La hauteur est propre à chaque GIF (onglet Scénario).' },
+    { key: 'Padding', label: 'Marge intérieure', kind: 'number', unit: 'px', min: 0, max: 120, step: 1, def: 60,
+      hint: 'Espace entre le bord de la fenêtre et le texte.' },
+    { key: 'Margin', label: 'Cadre', kind: 'number', unit: 'px', min: 0, max: 160, step: 1, def: 0,
+      hint: 'Épaisseur du fond coloré autour de la fenêtre. 0 : pas de cadre.' },
+    { key: 'MarginFill', label: 'Couleur du cadre', kind: 'color', def: '#171717' },
+    { key: 'BorderRadius', label: 'Coins arrondis', kind: 'number', unit: 'px', min: 0, max: 40, step: 1, def: 0 },
+    { key: 'WindowBar', label: 'Barre de titre', kind: 'select', def: '', options: [
+      ['', 'Aucune'], ['Colorful', 'Pastilles de couleur'], ['ColorfulRight', 'Pastilles de couleur, à droite'],
+      ['Rings', 'Anneaux'], ['RingsRight', 'Anneaux, à droite']] },
+    { key: 'WindowBarSize', label: 'Hauteur de la barre', kind: 'number', unit: 'px', min: 16, max: 80, step: 1, def: 30 },
+  ] },
+  { title: 'Texte', fields: [
+    { key: 'FontFamily', label: 'Police', kind: 'font', def: 'JetBrains Mono',
+      hint: 'Une police installée sur cette machine : VHS utilise les mêmes que le navigateur.' },
+    { key: 'FontSize', label: 'Taille', kind: 'number', unit: 'px', min: 10, max: 48, step: 1, def: 22 },
+    { key: 'LineHeight', label: 'Interligne', kind: 'number', unit: '×', min: 0.8, max: 2, step: 0.05, def: 1 },
+    { key: 'LetterSpacing', label: 'Espacement des lettres', kind: 'number', unit: 'px', min: -2, max: 6, step: 0.1, def: 1 },
+  ] },
+  { title: 'Couleurs', custom: 'theme' },
+  { title: 'Invite de commande', custom: 'prompt' },
+  { title: 'Rythme', fields: [
+    { key: 'TypingSpeed', label: 'Vitesse de frappe', kind: 'number', unit: 'ms', fmt: 'ms', min: 0, max: 200, step: 5, def: 50,
+      hint: 'Délai entre deux caractères tapés. Une action « Taper » peut avoir la sienne.' },
+    { key: 'PlaybackSpeed', label: 'Vitesse de lecture', kind: 'number', unit: '×', min: 0.25, max: 4, step: 0.05, def: 1,
+      hint: 'Accélère (au-dessus de 1) ou ralentit tout le GIF.' },
+    { key: 'Framerate', label: 'Images par seconde', kind: 'number', unit: 'i/s', min: 10, max: 60, step: 1, def: 50,
+      hint: 'Moins d’images : fichier plus léger, animation moins fluide.' },
+    { key: 'LoopOffset', label: 'Début de la boucle', kind: 'number', unit: '%', fmt: 'pct', min: 0, max: 100, step: 1, def: 0,
+      hint: 'Moment du GIF où la lecture reprend quand il recommence.' },
+    { key: 'CursorBlink', label: 'Curseur clignotant', kind: 'toggle', def: true },
+  ] },
+  { title: 'Technique', fields: [
+    { key: 'Shell', label: 'Shell', kind: 'select', fmt: 'str', def: 'bash', options: [['bash', 'bash'], ['zsh', 'zsh']],
+      hint: 'Le shell dans lequel les commandes sont tapées. L’invite est la même dans les deux.' },
+    { key: 'WaitTimeout', label: 'Attente maximale d’une commande', kind: 'number', unit: 's', fmt: 's', min: 5, max: 300, step: 5, def: 15,
+      hint: 'Au-delà, le rendu échoue. L’installation npm prend quelques secondes.' },
+  ] },
+];
+const FIELDS = GROUPS.flatMap((g) => g.fields || []);
+// Tailles en pixels : doublées dans les fichiers avec le rendu ×2 (Retina), affichées
+// ici en taille d'affichage. La hauteur, propre à chaque scénario, suit la même règle.
+const SCALED = ['Width', 'Padding', 'Margin', 'BorderRadius', 'WindowBarSize', 'FontSize', 'LetterSpacing'];
+const FIELD = Object.fromEntries(FIELDS.map((f) => [f.key, f]));
+// Ordre des lignes dans style.tape.
+const ORDER = ['Shell', 'FontFamily', 'FontSize', 'LineHeight', 'LetterSpacing', 'Width', 'Padding', 'Margin', 'MarginFill',
+  'BorderRadius', 'WindowBar', 'WindowBarSize', 'TypingSpeed', 'PlaybackSpeed', 'Framerate', 'LoopOffset', 'CursorBlink',
+  'WaitPattern', 'WaitTimeout', 'Theme'];
+
+const ANSI = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
+  'brightBlack', 'brightRed', 'brightGreen', 'brightYellow', 'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite'];
+const THEME_KEYS = ['background', 'foreground', 'cursor', 'selection', ...ANSI];
+const COLOR_LABELS = { background: 'Fond', foreground: 'Texte', cursor: 'Curseur', selection: 'Sélection', black: 'Noir',
+  red: 'Rouge', green: 'Vert', yellow: 'Jaune', blue: 'Bleu', magenta: 'Magenta', cyan: 'Cyan', white: 'Blanc' };
+const colorLabel = (k) => COLOR_LABELS[k] || `${COLOR_LABELS[k.slice(6, 7).toLowerCase() + k.slice(7)]} vif`;
+// Le thème de VHS quand style.tape n'en déclare aucun.
+const VHS_THEME = { background: '#171717', foreground: '#DDDDDD', cursor: '#DDDDDD', selection: '#3A3A3A',
+  black: '#282A2E', red: '#D74E6F', green: '#31BB71', yellow: '#D3E561', blue: '#8056FF', magenta: '#ED61D7', cyan: '#04D7D7', white: '#BFBFBF',
+  brightBlack: '#4D4D4D', brightRed: '#FE5F86', brightGreen: '#00D787', brightYellow: '#EBFF71', brightBlue: '#9B79FF',
+  brightMagenta: '#FF7AEA', brightCyan: '#00FEFE', brightWhite: '#E6E6E6' };
+const PROMPT_DEFAULTS = { symbol: '❯', color: '#FF9855', place: '#8A8A8A', blank: true };
+const STYLE_HEADER = ['# Réglages communs à tous les GIFs, inclus par chaque scénario (Source).',
+  '# Se modifie à la main ou avec l\'éditeur : node docs/demo/editor.js'];
+
+// ─── Scénarios (docs/demo/<nom>.tape) ────────────────────────────────────────
+
+const KEYS = [['Enter', 'Entrée'], ['Backspace', 'Retour arrière'], ['Delete', 'Suppr'], ['Tab', 'Tab'], ['Space', 'Espace'],
+  ['Escape', 'Échap'], ['Up', '↑'], ['Down', '↓'], ['Left', '←'], ['Right', '→'], ['PageUp', 'Page préc.'], ['PageDown', 'Page suiv.'], ['Insert', 'Inser']];
+const MODS = ['Ctrl', 'Alt', 'Shift', 'Ctrl+Alt', 'Ctrl+Shift', 'Alt+Shift', 'Ctrl+Alt+Shift'];
+const KINDS = [['type', 'Taper'], ['key', 'Touche'], ['combo', 'Raccourci'], ['sleep', 'Pause'], ['wait', 'Attendre'],
+  ['hide', 'Masquer'], ['show', 'Afficher'], ['screenshot', 'Capture'], ['copy', 'Copier'], ['paste', 'Coller'],
+  ['comment', 'Note'], ['raw', 'VHS brut']];
+// Préparation en coulisses (env.sh) : le dossier affiché par l'invite en dépend.
+const ENVS = [['telex', 'Sessions telex fictives', 'mon-projet'], ['vide', 'telex sans aucune session', 'mon-projet'],
+  ['install', 'Installation (npm isolé)', '~'], ['', 'Aucune (tape libre)', null]];
+const ENV_HINTS = {
+  telex: 'Le telex du dépôt et cinq sessions fictives (mon-projet, api, site), dans un dossier jetable.',
+  vide: 'Le telex du dépôt, sans aucune session, dans un dossier jetable.',
+  install: 'npm installe dans un dossier jetable : l’installation globale n’est pas touchée.',
+  '': 'Pas de préparation ni de nettoyage : le shell démarre avec l’invite de VHS (>), que le motif d’attente du style ne reconnaît pas. Les actions « Attendre » risquent d’échouer.',
+};
+const ENV_LINE = /^Type\s+"source docs\/demo\/env\.sh(?: (\w+))? && clear"\s+Enter$/;
+const CLEANUP = ['Hide', 'Type "demo_end" Enter', 'Sleep 1s'];
+
+const STR = '("[^"]*"|\'[^\']*\'|`[^`]*`)';
+// Une ligne de .tape peut contenir plusieurs commandes (Type "…" Enter).
+const COMMANDS = [
+  [new RegExp(`Type(@\\S+)?\\s+${STR}`, 'y'), (m) => ({ kind: 'type', speed: m[1] ? m[1].slice(1) : '', text: m[2].slice(1, -1) })],
+  [/Sleep\s+(\S+)/y, (m) => ({ kind: 'sleep', dur: seconds(m[1]) })],
+  [new RegExp(`(${KEYS.map(([k]) => k).join('|')})(@\\S+)?(?:\\s+(\\d+))?(?=\\s|$)`, 'y'),
+    (m) => ({ kind: 'key', key: m[1], speed: m[2] ? m[2].slice(1) : '', n: m[3] ? Number(m[3]) : 1 })],
+  [/((?:Ctrl|Alt|Shift)(?:\+(?:Ctrl|Alt|Shift))*)\+(\S+)/y, (m) => ({ kind: 'combo', mods: m[1], key: m[2] })],
+  [/Hide(?=\s|$)/y, () => ({ kind: 'hide' })],
+  [/Show(?=\s|$)/y, () => ({ kind: 'show' })],
+  [/Wait(\+Screen|\+Line)?(@\S+)?(?:\s+(\/.*\/))?(?=\s|$)/y, (m) => ({ kind: 'wait', scope: m[1] || '', timeout: m[2] ? m[2].slice(1) : '', pattern: m[3] || '' })],
+  [new RegExp(`Screenshot\\s+(${STR.slice(1, -1)}|\\S+)`, 'y'), (m) => ({ kind: 'screenshot', path: unquote(m[1]) })],
+  [new RegExp(`Copy\\s+${STR}`, 'y'), (m) => ({ kind: 'copy', text: m[1].slice(1, -1) })],
+  [/Paste(?=\s|$)/y, () => ({ kind: 'paste' })],
+];
+
+// ─── État ────────────────────────────────────────────────────────────────────
+
+let data = null;   // réponse de /api/state
+let S = null;      // tout ce qui est en cours d'édition
+let saved = '';    // signature de ce qui est enregistré
+const ui = {
+  tape: null, pane: 'scenario', mode: 'list', view: 'apercu', filter: '',
+  cursor: { mode: 'end' }, playing: false,
+  renders: {}, rendering: null, renderError: null, timer: null,
+  outputs: new Map(), lastOutputs: {}, wanted: null, outputTimer: null,
+  geometry: new Map(), wantedGeometry: null, geometryTimer: null,
+};
+
+const $ = (sel) => document.querySelector(sel);
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text != null) node.textContent = text;
+  return node;
+}
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
+const unquote = (v) => { const m = String(v).trim().match(/^(["'`])(.*)\1$/); return m ? m[2] : String(v).trim(); };
+const quote = (s) => (String(s).includes('"') ? `'${s}'` : `"${s}"`);
+const round = (n) => Number(Number(n).toFixed(3));
+const seconds = (t) => (/ms$/.test(t) ? parseFloat(t) / 1000 : parseFloat(t)) || 0;
+const fmtDur = (s) => (s < 1 ? `${Math.round(s * 1000)}ms` : `${round(s)}s`);
+const fmtSec = (s) => `${s.toFixed(1).replace('.', ',')} s`;
+const hex6 = (c) => {
+  const s = String(c || '').trim();
+  if (/^#[0-9a-f]{6}/i.test(s)) return s.slice(0, 7).toUpperCase();
+  if (/^#[0-9a-f]{3}$/i.test(s)) return `#${[...s.slice(1)].map((x) => x + x).join('')}`.toUpperCase();
+  return '#000000';
+};
+// Chaîne VHS : des guillemets que le texte ne contient pas (VHS n'a pas d'échappement).
+function vhsString(s) {
+  for (const q of ['"', '\'', '`']) if (!s.includes(q)) return `${q}${s}${q}`;
+  return `"${s.replace(/"/g, '\'')}"`;
+}
+
+// ─── Lecture et écriture de style.tape ───────────────────────────────────────
+
+function parseStyle(text) {
+  const set = {};
+  const env = {};
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    let m;
+    if ((m = line.match(/^Set\s+(\w+)\s+(.*)$/))) set[m[1]] = m[2];
+    else if ((m = line.match(/^Env\s+(\w+)\s+(.*)$/))) env[m[1]] = unquote(m[2]);
+  }
+  return { set, env };
+}
+
+function parseValue(f, raw) {
+  switch (f.fmt || f.kind) {
+    case 'ms': return /ms$/.test(raw) ? parseFloat(raw) : round(parseFloat(raw) * 1000);
+    case 's': return /ms$/.test(raw) ? round(parseFloat(raw) / 1000) : parseFloat(raw);
+    case 'pct': return parseFloat(raw);
+    case 'toggle': return raw.trim() === 'true';
+    case 'color': return hex6(unquote(raw));
+    case 'str': case 'font': case 'select': return unquote(raw);
+    default: return parseFloat(raw);
+  }
+}
+
+function formatValue(f, v) {
+  switch (f.fmt || f.kind) {
+    case 'ms': return `${round(v)}ms`;
+    case 's': return `${round(v)}s`;
+    case 'pct': return `${round(v)}%`;
+    case 'toggle': return v ? 'true' : 'false';
+    case 'str': case 'font': case 'color': return quote(v);
+    case 'select': return v;
+    default: return String(round(v));
+  }
+}
+
+const escapeRe = (s) => s.replace(/[\\^$.*+?()[\]{}|/]/g, '\\$&');
+
+function themeLine() {
+  const t = S.theme;
+  if (t.mode === 'default') return null;
+  if (t.mode === 'builtin') return `Set Theme ${quote(t.name)}`;
+  const entries = [['name', t.name || 'personnalisé'], ...THEME_KEYS.map((k) => [k, hex6(t.colors[k])])];
+  return `Set Theme { ${entries.map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(', ')} }`;
+}
+
+function serializeStyle() {
+  const out = [...STYLE_HEADER, ''];
+  for (const key of ORDER) {
+    if (key === 'WaitPattern') {
+      // VHS attend la fin d'une commande en guettant l'invite : le motif suit le symbole.
+      out.push(`Set WaitPattern /${escapeRe(S.prompt.symbol)}\\s*$/`);
+    } else if (key === 'Theme') {
+      const line = themeLine();
+      if (line) out.push(line);
+    } else if ((S.explicit.has(key) || (S.scale !== 1 && SCALED.includes(key))) && !(key === 'WindowBar' && !S.values[key])) {
+      // En ×2, toutes les tailles sont écrites : celles par défaut de VHS ne sont pas doublées.
+      const value = SCALED.includes(key) ? S.values[key] * S.scale : S.values[key];
+      out.push(`Set ${key} ${formatValue(FIELD[key], value)}`);
+    }
+  }
+  out.push(...S.extra.set);
+  out.push('', '# Invite de commande (lue par env.sh) : symbole, sa couleur, couleur du dossier,',
+    '# lignes vides autour de chaque sortie (1) ou non (0).',
+    `Env DEMO_PROMPT_SYMBOL ${quote(S.prompt.symbol)}`,
+    `Env DEMO_PROMPT_COLOR ${quote(hex6(S.prompt.color))}`,
+    `Env DEMO_PLACE_COLOR ${quote(hex6(S.prompt.place))}`,
+    `Env DEMO_BLANK_LINES "${S.prompt.blank ? 1 : 0}"`);
+  if (S.scale !== 1) {
+    out.push('', '# Rendu ×2 (Retina) : les tailles ci-dessus et les hauteurs des scénarios sont doublées,',
+      '# le README affiche les GIFs à moitié. L\'éditeur montre les tailles d\'affichage.',
+      `Env DEMO_SCALE "${S.scale}"`);
+  }
+  out.push(...S.extra.env);
+  return `${out.join('\n')}\n`;
+}
+
+// ─── Lecture et écriture des scénarios ───────────────────────────────────────
+// Un scénario : sa description (commentaires du début), l'en-tête (sortie, hauteur,
+// style commun), la préparation en coulisses, les actions filmées, le nettoyage.
+
+function parseLine(line) {
+  const text = line.trim();
+  if (!text) return [];
+  if (text.startsWith('#')) return [{ kind: 'comment', text: text.replace(/^#\s?/, '') }];
+  const out = [];
+  let pos = 0;
+  while (pos < text.length) {
+    while (text[pos] === ' ' || text[pos] === '\t') pos++;
+    if (pos >= text.length) break;
+    let action = null;
+    for (const [re, make] of COMMANDS) {
+      re.lastIndex = pos;
+      const m = re.exec(text);
+      if (m) {
+        action = make(m);
+        pos = re.lastIndex;
+        break;
+      }
+    }
+    if (!action) {
+      out.push({ kind: 'raw', line: text.slice(pos) });
+      break;
+    }
+    out.push(action);
+  }
+  return out;
+}
+
+function parseTape(name, text, scale = S ? S.scale : 1) {
+  const lines = text.replace(/\r/g, '').split('\n');
+  const t = { name, title: [], height: 600, useStyle: false, outputs: [], header: [], env: '', endOnOutput: false, actions: [] };
+  let i = 0;
+  while (i < lines.length && lines[i].trim().startsWith('#')) t.title.push(lines[i++].trim().replace(/^#\s?/, ''));
+  for (; i < lines.length; i++) {
+    const l = lines[i].trim();
+    if (!l) continue;
+    let m;
+    if ((m = l.match(/^Output\s+(.*)$/))) {
+      if (unquote(m[1]) !== `docs/demo/${name}.gif`) t.outputs.push(l);
+    } else if ((m = l.match(/^Set\s+Height\s+(\d+)$/))) t.height = Number(m[1]) / scale;
+    else if (l === 'Source docs/demo/style.tape') t.useStyle = true;
+    else if (/^Env\s+DEMO_FINAL_COMMAND\s/.test(l)) t.endOnOutput = true;
+    else if (/^(Set|Env|Require|Source)\s/.test(l)) t.header.push(l);
+    else break;
+  }
+  let body = lines.slice(i).map((l) => l.trim()).filter(Boolean);
+  const env = body[1] && body[1].match(ENV_LINE);
+  if (body[0] === 'Hide' && env && body[2] === 'Wait' && body[3] === 'Show') {
+    t.env = env[1] || 'telex';
+    body = body.slice(4);
+    if (body.slice(-3).join('\n') === CLEANUP.join('\n')) body = body.slice(0, -3);
+  }
+  for (const l of body) t.actions.push(...parseLine(l));
+  return t;
+}
+
+function actionLine(a) {
+  const speed = a.speed ? `@${a.speed}` : '';
+  switch (a.kind) {
+    case 'type': return `Type${speed} ${vhsString(a.text)}`;
+    case 'key': return `${a.key}${speed}${a.n > 1 ? ` ${a.n}` : ''}`;
+    case 'combo': return `${a.mods}+${a.key || 'C'}`;
+    case 'sleep': return `Sleep ${fmtDur(a.dur)}`;
+    case 'wait': return `Wait${a.scope}${a.timeout ? `@${a.timeout}` : ''}${a.pattern ? ` ${a.pattern}` : ''}`;
+    case 'hide': return 'Hide';
+    case 'show': return 'Show';
+    case 'screenshot': return `Screenshot ${a.path || 'capture.png'}`;
+    case 'copy': return `Copy ${vhsString(a.text)}`;
+    case 'paste': return 'Paste';
+    case 'comment': return `# ${a.text}`;
+    default: return a.line;
+  }
+}
+
+function serializeTape(t) {
+  const out = t.title.map((l) => (l ? `# ${l}` : '#'));
+  out.push(`Output docs/demo/${t.name}.gif`, ...t.outputs, `Set Height ${Math.round(t.height * S.scale)}`);
+  if (t.useStyle) out.push('Source docs/demo/style.tape');
+  const final = t.env && t.endOnOutput ? countCommands(t) : 0;
+  if (final) out.push(`Env DEMO_FINAL_COMMAND "${final}"`);
+  out.push(...t.header);
+  if (t.env) out.push('', 'Hide', `Type "source docs/demo/env.sh${t.env === 'telex' ? '' : ` ${t.env}`} && clear" Enter`, 'Wait', 'Show');
+  out.push('', ...t.actions.map(actionLine));
+  if (t.env) out.push('', ...CLEANUP);
+  return `${out.join('\n')}\n`;
+}
+
+function defaultAction(kind, t) {
+  switch (kind) {
+    case 'type': return { kind, text: '', speed: '' };
+    case 'key': return { kind, key: 'Enter', speed: '', n: 1 };
+    case 'combo': return { kind, mods: 'Ctrl', key: 'C' };
+    case 'sleep': return { kind, dur: 1 };
+    case 'wait': return { kind, scope: '', timeout: '', pattern: '' };
+    case 'screenshot': return { kind, path: `docs/demo/${t.name}.png` };
+    case 'copy': case 'comment': return { kind, text: '' };
+    case 'raw': return { kind, line: '' };
+    default: return { kind };
+  }
+}
+
+// Une commande complète : la taper, valider, attendre sa fin, laisser lire.
+const commandBlock = (text = '', pause = 2) => [
+  { kind: 'type', text, speed: '' }, { kind: 'sleep', dur: 0.4 }, { kind: 'key', key: 'Enter', speed: '', n: 1 },
+  { kind: 'wait', scope: '', timeout: '', pattern: '' }, { kind: 'sleep', dur: pause }];
+
+function newTape(name, env) {
+  const command = env === 'install' ? 'npm install -g github:hooop/telex' : env ? 'telex --help' : 'echo bonjour';
+  return { name, title: ['Nouveau GIF.'], height: 500, useStyle: true, outputs: [], header: [], env, endOnOutput: false,
+    actions: [{ kind: 'sleep', dur: 0.7 }, ...commandBlock(command, 5)] };
+}
+
+// ─── Chargement, signature ───────────────────────────────────────────────────
+
+const tapeText = (name) => serializeTape(S.tapes[name]);
+const signature = () => JSON.stringify({ style: serializeStyle(), tapes: S.order.map((n) => [n, tapeText(n)]), deleted: [...S.deleted].sort() });
+const isDirty = () => !!S && signature() !== saved;
+
+function builtin(name) {
+  const t = data.themes.find((x) => x.name === name);
+  if (!t || !t.background) return { colors: { ...VHS_THEME }, known: false };
+  return { colors: Object.fromEntries(THEME_KEYS.map((k) => [k, hex6(t[k] || VHS_THEME[k])])), known: true };
+}
+
+function load(json) {
+  data = json;
+  const { set, env } = parseStyle(json.style);
+  const scale = env.DEMO_SCALE === '2' ? 2 : 1;
+  const values = {};
+  const explicit = new Set();
+  for (const f of FIELDS) {
+    if (set[f.key] !== undefined) {
+      const value = parseValue(f, set[f.key]);
+      values[f.key] = SCALED.includes(f.key) ? round(value / scale) : value;
+      explicit.add(f.key);
+    } else values[f.key] = f.def;
+  }
+  let theme = { mode: 'default', name: '', colors: { ...VHS_THEME }, known: true };
+  if (set.Theme && set.Theme.trim().startsWith('{')) {
+    try {
+      const t = JSON.parse(set.Theme);
+      theme = { mode: 'custom', name: t.name || 'personnalisé', colors: Object.fromEntries(THEME_KEYS.map((k) => [k, hex6(t[k] || VHS_THEME[k])])), known: true };
+    } catch { /* JSON illisible : thème par défaut */ }
+  } else if (set.Theme) {
+    const name = unquote(set.Theme);
+    theme = { mode: 'builtin', name, ...builtin(name) };
+  }
+  // Lignes que l'éditeur ne connaît pas : recopiées telles quelles.
+  const known = new Set([...FIELDS.map((f) => f.key), 'Theme', 'WaitPattern']);
+  const lines = json.style.split('\n').map((l) => l.trim());
+  const extra = {
+    set: lines.filter((l) => /^Set\s+\w+/.test(l) && !known.has(l.split(/\s+/)[1])),
+    env: lines.filter((l) => /^Env\s+\w+/.test(l) && !/^Env\s+DEMO_(PROMPT_SYMBOL|PROMPT_COLOR|PLACE_COLOR|BLANK_LINES|SCALE)\b/.test(l)),
+  };
+  S = {
+    values, explicit, theme, extra, scale,
+    prompt: {
+      symbol: env.DEMO_PROMPT_SYMBOL || PROMPT_DEFAULTS.symbol,
+      color: hex6(env.DEMO_PROMPT_COLOR || PROMPT_DEFAULTS.color),
+      place: hex6(env.DEMO_PLACE_COLOR || PROMPT_DEFAULTS.place),
+      blank: env.DEMO_BLANK_LINES === undefined ? PROMPT_DEFAULTS.blank : env.DEMO_BLANK_LINES === '1',
+    },
+    tapes: Object.fromEntries(json.tapes.map((t) => [t.name, parseTape(t.name, t.text, scale)])),
+    order: json.tapes.map((t) => t.name),
+    deleted: new Set(),
+  };
+  if (!S.tapes[ui.tape]) ui.tape = S.tapes.sessions ? 'sessions' : S.order[0] || null;
+  ui.cursor = { mode: 'end' };
+  saved = signature();
+  $('#vhs-version').textContent = `VHS ${json.vhs}`;
+  buildTabs();
+  buildStylePane();
+  buildScenarioPane();
+  changed();
+}
+
+// ─── Contrôles génériques ────────────────────────────────────────────────────
+
+function numberControl({ min, max, step, unit, value, onInput }) {
+  const wrap = el('div', 'control');
+  const range = el('input');
+  Object.assign(range, { type: 'range', min, max, step, value });
+  const num = el('input', 'num');
+  Object.assign(num, { type: 'number', step, value });
+  range.oninput = () => { num.value = range.value; onInput(Number(range.value)); };
+  num.oninput = () => {
+    if (num.value === '' || Number.isNaN(num.valueAsNumber)) return;
+    range.value = num.value;
+    onInput(num.valueAsNumber);
+  };
+  wrap.append(range, num, el('span', 'unit', unit || ''));
+  wrap.input = num;
+  wrap.setValue = (v) => { range.value = v; num.value = v; };
+  return wrap;
+}
+
+function colorControl(value, onInput) {
+  const wrap = el('div', 'control');
+  const pick = el('input');
+  pick.type = 'color';
+  pick.value = hex6(value).toLowerCase();
+  const hex = el('input', 'hex');
+  hex.value = hex6(value);
+  hex.spellcheck = false;
+  pick.oninput = () => { hex.value = pick.value.toUpperCase(); onInput(hex.value); };
+  hex.oninput = () => {
+    if (!/^#[0-9a-f]{6}$/i.test(hex.value.trim())) return;
+    pick.value = hex.value.trim().toLowerCase();
+    onInput(hex.value.trim().toUpperCase());
+  };
+  wrap.append(pick, hex);
+  wrap.input = pick;
+  wrap.setValue = (v) => { pick.value = hex6(v).toLowerCase(); hex.value = hex6(v); };
+  return wrap;
+}
+
+function makeControl(f, value, onInput) {
+  if (f.kind === 'number') return numberControl({ ...f, value, onInput });
+  if (f.kind === 'color') return colorControl(value, onInput);
+  const wrap = el('div', 'control');
+  let input;
+  if (f.kind === 'select') {
+    input = el('select', 'sel');
+    for (const [v, label] of f.options) input.append(new Option(label, v));
+    input.value = value;
+    input.onchange = () => onInput(input.value);
+  } else if (f.kind === 'font') {
+    input = el('input', 'text');
+    input.value = value;
+    input.spellcheck = false;
+    input.setAttribute('list', 'fonts');
+    const list = el('datalist');
+    list.id = 'fonts';
+    for (const name of data.fonts) list.append(new Option(name));
+    wrap.append(list);
+    input.oninput = () => { if (input.value.trim()) onInput(input.value.trim()); };
+  } else if (f.kind === 'toggle') {
+    const label = el('label', 'toggle');
+    input = el('input');
+    input.type = 'checkbox';
+    input.checked = value;
+    input.onchange = () => onInput(input.checked);
+    label.append(input, el('span', null, 'activé'));
+    wrap.append(label);
+    wrap.input = input;
+    wrap.setValue = (v) => { input.checked = v; };
+    return wrap;
+  }
+  wrap.append(input);
+  wrap.input = input;
+  wrap.setValue = (v) => { input.value = v; };
+  return wrap;
+}
+
+function plainField(label, control, hint) {
+  const box = el('div', 'field');
+  const head = el('div', 'field-head');
+  const l = el('label', null, label);
+  if (control.input) {
+    control.input.id ||= `p-${Math.random().toString(36).slice(2)}`;
+    l.htmlFor = control.input.id;
+  }
+  head.append(l);
+  box.append(head, control);
+  if (hint) box.append(el('p', 'hint', hint));
+  return box;
+}
+
+function group(title, sub) {
+  const g = el('section', 'group');
+  const h = el('h2', null, title);
+  if (sub) h.append(el('small', null, sub));
+  g.append(h);
+  return g;
+}
+
+function segmented(options, current, onPick) {
+  const seg = el('div', 'seg');
+  for (const [value, label] of options) {
+    const b = el('button', value === current ? 'on' : null, label);
+    b.type = 'button';
+    b.onclick = () => onPick(value);
+    seg.append(b);
+  }
+  return seg;
+}
+
+// ─── Volet « Style commun » ──────────────────────────────────────────────────
+
+// Un réglage de style.tape : étiquette, « défaut VHS » tant qu'il n'est pas écrit, ↺ pour y revenir.
+function settingField(f) {
+  const box = el('div', 'field');
+  const head = el('div', 'field-head');
+  const label = el('label', null, f.label);
+  const tag = el('span', 'tag', 'défaut VHS');
+  const reset = el('button', 'reset', '↺');
+  reset.type = 'button';
+  reset.title = 'Revenir à la valeur par défaut de VHS (la ligne disparaît de style.tape)';
+  const sync = () => {
+    box.classList.toggle('explicit', S.explicit.has(f.key));
+    tag.hidden = S.explicit.has(f.key);
+  };
+  const control = makeControl(f, S.values[f.key], (v) => {
+    S.values[f.key] = v;
+    S.explicit.add(f.key);
+    sync();
+    changed();
+  });
+  control.input.id = `f-${f.key}`;
+  label.htmlFor = control.input.id;
+  reset.onclick = () => {
+    S.explicit.delete(f.key);
+    S.values[f.key] = f.def;
+    control.setValue(f.def);
+    sync();
+    changed();
+  };
+  head.append(label, tag, reset);
+  box.append(head, control);
+  if (f.hint) box.append(el('p', 'hint', f.hint));
+  sync();
+  return box;
+}
+
+function buildStylePane() {
+  const pane = $('#pane-style');
+  pane.replaceChildren();
+  for (const g of GROUPS) {
+    if (g.custom === 'theme') pane.append(themeGroup());
+    else if (g.custom === 'prompt') pane.append(promptGroup());
+    else if (g.custom === 'scale') pane.append(scaleGroup());
+    else {
+      const box = group(g.title);
+      for (const f of g.fields) box.append(settingField(f));
+      pane.append(box);
+    }
+  }
+}
+
+function scaleGroup() {
+  const box = group('Netteté');
+  const toggle = makeControl({ kind: 'toggle' }, S.scale === 2, (v) => { S.scale = v ? 2 : 1; changed(true); });
+  box.append(plainField('Rendu Retina (×2)', toggle,
+    'VHS produit des GIFs deux fois plus grands, que le README affiche à moitié : le texte est net sur les écrans Retina (Mac, téléphones). Les tailles se règlent toujours en taille d’affichage. Fichiers environ 3 fois plus lourds.'));
+  return box;
+}
+
+function promptGroup() {
+  const box = group('Invite de commande');
+  const p = S.prompt;
+  const symbol = el('input', 'text');
+  symbol.value = p.symbol;
+  symbol.maxLength = 4;
+  symbol.spellcheck = false;
+  symbol.style.width = '80px';
+  symbol.style.fontFamily = 'var(--mono)';
+  symbol.oninput = () => { if (symbol.value.trim()) { p.symbol = symbol.value.trim(); changed(); } };
+  const symbolWrap = el('div', 'control');
+  symbolWrap.append(symbol);
+  symbolWrap.input = symbol;
+  box.append(plainField('Symbole', symbolWrap, 'Par exemple ❯, $, %, > ou λ. VHS guette ce symbole pour savoir qu’une commande est finie.'));
+  box.append(plainField('Couleur du symbole', colorControl(p.color, (v) => { p.color = v; changed(); })));
+  box.append(plainField('Couleur du dossier', colorControl(p.place, (v) => { p.place = v; changed(); }),
+    'Le dossier affiché dépend de la préparation du GIF : « mon-projet », ou « ~ » pour l’installation.'));
+  const blank = makeControl({ kind: 'toggle' }, p.blank, (v) => { p.blank = v; changed(); });
+  box.append(plainField('Lignes vides autour des sorties', blank,
+    'Une ligne vide entre la commande et sa sortie, et une autre avant l’invite suivante. Sauf après clear, et avant le bilan de npm, qui a déjà la sienne.'));
+  return box;
+}
+
+function themeGroup() {
+  const box = group('Couleurs');
+  box.append(el('p', 'note', 'Le thème règle le fond, le texte et les 16 couleurs de base. Les couleurs propres à telex (crème, bleu pâle, rose, ✓ vert, ✕ rouge) viennent de sa palette 256 couleurs et ne changent pas.'));
+  const holder = el('div');
+  const draw = () => {
+    const seg = segmented([['custom', 'Personnalisé'], ['builtin', 'Thème intégré'], ['default', 'Défaut VHS']], S.theme.mode, (mode) => {
+      if (S.theme.mode === mode) return;
+      if (mode === 'custom') S.theme = { mode, name: S.theme.name || 'personnalisé', colors: { ...S.theme.colors }, known: true };
+      else if (mode === 'builtin') {
+        const name = data.themes.some((t) => t.name === S.theme.name) ? S.theme.name : (data.themes.find((t) => t.name === 'Catppuccin Mocha') || data.themes[0]).name;
+        S.theme = { mode, name, ...builtin(name) };
+      } else S.theme = { mode, name: '', colors: { ...VHS_THEME }, known: true };
+      draw();
+      changed();
+    });
+    seg.classList.add('theme-mode');
+    const body = S.theme.mode === 'custom' ? customTheme() : S.theme.mode === 'builtin' ? builtinTheme(draw) : defaultTheme();
+    holder.replaceChildren(seg, ...body);
+  };
+  box.append(holder);
+  draw();
+  return box;
+}
+
+function swatches(colors) {
+  const preview = el('div', 'swatch-bg');
+  preview.style.background = colors.background;
+  preview.style.color = colors.foreground;
+  preview.innerHTML = `<span>texte</span><span style="color:${colors.cursor}">curseur ▌</span><span style="background:${colors.selection}">sélection</span>`;
+  const grid = el('div', 'swatches');
+  for (const k of ANSI) {
+    const s = el('span');
+    s.style.background = colors[k];
+    s.title = `${colorLabel(k)} ${colors[k]}`;
+    grid.append(s);
+  }
+  return [preview, grid];
+}
+
+function builtinTheme(redraw) {
+  const filter = el('input', 'text');
+  filter.placeholder = `Filtrer les ${data.themes.length} thèmes…`;
+  filter.value = ui.filter;
+  const list = el('select', 'theme-list');
+  list.size = 10;
+  list.setAttribute('aria-label', 'Thèmes intégrés');
+  const fill = () => {
+    const q = ui.filter.toLowerCase();
+    list.replaceChildren(...data.themes.filter((t) => t.name.toLowerCase().includes(q)).map((t) => new Option(t.name, t.name, false, t.name === S.theme.name)));
+  };
+  filter.oninput = () => { ui.filter = filter.value; fill(); };
+  const shown = el('div');
+  const themeInfo = () => {
+    const nodes = swatches(S.theme.colors);
+    if (!S.theme.known) nodes.push(el('p', 'hint', 'Couleurs de ce thème inconnues de l’aperçu : lancez un rendu VHS pour le voir.'));
+    const copy = el('button', 'link', 'Personnaliser à partir de ce thème');
+    copy.type = 'button';
+    copy.onclick = () => {
+      S.theme = { mode: 'custom', name: S.theme.name, colors: { ...S.theme.colors }, known: true };
+      redraw();
+      changed();
+    };
+    nodes.push(copy);
+    return nodes;
+  };
+  list.onchange = () => {
+    S.theme = { mode: 'builtin', name: list.value, ...builtin(list.value) };
+    shown.replaceChildren(...themeInfo());
+    changed();
+  };
+  fill();
+  shown.replaceChildren(...themeInfo());
+  requestAnimationFrame(() => {
+    const option = list.selectedOptions[0];
+    if (option) list.scrollTop = option.offsetTop - list.clientHeight / 2;
+  });
+  return [filter, list, shown];
+}
+
+function customTheme() {
+  const t = S.theme;
+  const name = el('input', 'text');
+  name.value = t.name;
+  name.spellcheck = false;
+  name.oninput = () => { t.name = name.value.trim() || 'personnalisé'; changed(); };
+  const nameWrap = el('div', 'control');
+  nameWrap.append(name);
+  nameWrap.input = name;
+  const grid = el('div', 'colors');
+  for (const k of THEME_KEYS) {
+    const row = el('label', 'color-row');
+    const pick = el('input');
+    pick.type = 'color';
+    pick.value = hex6(t.colors[k]).toLowerCase();
+    const label = el('span', null, colorLabel(k));
+    label.title = hex6(t.colors[k]);
+    pick.oninput = () => { t.colors[k] = pick.value.toUpperCase(); label.title = t.colors[k]; changed(); };
+    row.append(pick, label);
+    grid.append(row);
+  }
+  return [plainField('Nom du thème', nameWrap), grid];
+}
+
+function defaultTheme() {
+  return [...swatches(VHS_THEME), el('p', 'hint', 'Aucune ligne Theme dans style.tape : VHS utilise son thème sombre par défaut.')];
+}
+
+// ─── Volet « Scénario » ──────────────────────────────────────────────────────
+
+function currentTape() {
+  return S && ui.tape ? S.tapes[ui.tape] : null;
+}
+
+function buildScenarioPane() {
+  const pane = $('#pane-scenario');
+  const t = currentTape();
+  if (!t) {
+    pane.replaceChildren(el('p', 'group note', 'Aucun GIF : créez-en un avec « + Nouveau GIF ».'));
+    return;
+  }
+  // Le GIF : description, préparation, hauteur.
+  const gif = group('Ce GIF', `docs/demo/${t.name}.tape`);
+  const desc = el('textarea');
+  desc.rows = 2;
+  desc.value = t.title.join('\n');
+  desc.oninput = () => { t.title = desc.value ? desc.value.split('\n') : []; changed(true); };
+  const descWrap = el('div', 'control');
+  descWrap.append(desc);
+  descWrap.input = desc;
+  gif.append(plainField('Description', descWrap, 'En commentaire en tête du fichier : à quoi sert ce GIF.'));
+  const envSel = el('select', 'sel');
+  for (const [v, label] of ENVS) envSel.append(new Option(label, v));
+  envSel.value = t.env;
+  const envHint = el('p', 'hint', ENV_HINTS[t.env]);
+  envSel.onchange = () => { t.env = envSel.value; envHint.textContent = ENV_HINTS[t.env]; changed(true); };
+  const envWrap = el('div', 'control');
+  envWrap.append(envSel);
+  envWrap.input = envSel;
+  const envField = plainField('Préparation en coulisses', envWrap);
+  envField.append(envHint);
+  gif.append(envField);
+  gif.append(plainField('Hauteur', numberControl({ min: 200, max: 1600, step: 10, unit: 'px', value: t.height,
+    onInput: (v) => { t.height = v; changed(true); } }), 'Propre à ce GIF : elle dépend du nombre de lignes affichées.'));
+  const end = makeControl({ kind: 'toggle' }, t.endOnOutput, (v) => { t.endOnOutput = v; changed(true); });
+  const endField = plainField('Terminer sur la dernière sortie', end,
+    'Après la dernière commande, pas de nouvelle invite : le GIF s’arrête sur sa sortie. Gardez une pause à la fin pour laisser lire.');
+  if (!t.env) endField.append(el('p', 'hint', 'Nécessite une préparation en coulisses.'));
+  gif.append(endField);
+  const snippet = el('input', 'text code');
+  snippet.id = 'readme-snippet';
+  snippet.readOnly = true;
+  snippet.value = readmeSnippet(t);
+  snippet.onclick = () => snippet.select();
+  const snippetWrap = el('div', 'control');
+  snippetWrap.append(snippet);
+  snippetWrap.input = snippet;
+  gif.append(plainField('Dans le README', snippetWrap, 'À copier tel quel. La largeur fixe la taille d’affichage : indispensable avec le rendu ×2.'));
+
+  // Les actions, en liste ou en texte.
+  const acts = group('Actions filmées');
+  const modes = segmented([['list', 'Liste'], ['text', 'Texte .tape']], ui.mode, (mode) => {
+    ui.mode = mode;
+    buildScenarioPane();
+  });
+  acts.querySelector('h2').append(modes);
+  if (ui.mode === 'text') acts.append(...textEditor(t));
+  else acts.append(...actionList(t));
+
+  // Suppression, confirmée par un second clic.
+  const danger = el('section', 'group');
+  const del = el('button', 'btn small danger', 'Supprimer ce GIF');
+  del.type = 'button';
+  let armed = null;
+  del.onclick = () => {
+    if (!armed) {
+      del.classList.add('armed');
+      del.textContent = 'Cliquer encore pour supprimer';
+      armed = setTimeout(() => { armed = null; del.classList.remove('armed'); del.textContent = 'Supprimer ce GIF'; }, 4000);
+      return;
+    }
+    clearTimeout(armed);
+    deleteTape(t.name);
+  };
+  danger.append(del, el('p', 'hint', `Le fichier ${t.name}.tape sera supprimé à l’enregistrement ; un ${t.name}.gif déjà produit reste en place.`));
+
+  pane.replaceChildren(gif, acts, danger);
+}
+
+function readmeSnippet(t) {
+  const alt = (t.title[0] || t.name).split('. ')[0].replace(/["<>]/g, '');
+  return `<img src="docs/demo/${t.name}.gif" width="${Math.round(S.values.Width)}" alt="${alt}">`;
+}
+
+function actionList(t) {
+  const list = el('div', 'acts');
+  list.id = 'acts';
+  t.actions.forEach((a, i) => list.append(actionRow(t, a, i)));
+  if (!t.actions.length) list.append(el('p', 'hint', 'Aucune action : ajoutez une commande.'));
+  const add = el('div', 'add');
+  const cmd = el('button', 'btn small', '+ Commande');
+  cmd.type = 'button';
+  cmd.title = 'Taper une commande, valider, attendre sa fin, puis une pause de lecture';
+  cmd.onclick = () => insertActions(t, commandBlock());
+  const pick = el('select', 'sel');
+  pick.append(new Option('+ Action…', ''));
+  for (const [kind, label] of KINDS) pick.append(new Option(label, kind));
+  pick.onchange = () => {
+    if (pick.value) insertActions(t, [defaultAction(pick.value, t)]);
+    pick.value = '';
+  };
+  add.append(cmd, pick);
+  const hint = el('p', 'hint', 'Les actions s’ajoutent après celle qui est sélectionnée. Cliquer une action montre l’écran à ce moment-là.');
+  return [list, add, hint];
+}
+
+function insertActions(t, actions) {
+  const at = ui.cursor.mode === 'index' ? Math.min(ui.cursor.index + 1, t.actions.length) : t.actions.length;
+  t.actions.splice(at, 0, ...actions);
+  ui.cursor = { mode: 'index', index: at };
+  buildScenarioPane();
+  changed(true);
+  const first = document.querySelector(`#acts .act[data-i="${at}"] .params input`);
+  if (first) first.focus();
+}
+
+function moveAction(t, i, delta) {
+  const j = i + delta;
+  if (j < 0 || j >= t.actions.length) return;
+  [t.actions[i], t.actions[j]] = [t.actions[j], t.actions[i]];
+  ui.cursor = { mode: 'index', index: j };
+  buildScenarioPane();
+  changed(true);
+}
+
+function actionRow(t, a, i) {
+  const row = el('div', 'act');
+  row.dataset.i = i;
+  const time = el('span', 't');
+  const kind = el('select', 'kind');
+  kind.setAttribute('aria-label', 'Type d’action');
+  for (const [k, label] of KINDS) kind.append(new Option(label, k));
+  kind.value = a.kind;
+  kind.onchange = () => {
+    const next = defaultAction(kind.value, t);
+    if ('text' in next && typeof a.text === 'string') next.text = a.text;
+    t.actions[i] = next;
+    buildScenarioPane();
+    changed(true);
+  };
+  const params = el('div', 'params');
+  params.append(...actionParams(t, a));
+  const tools = el('div', 'tools');
+  const tool = (label, title, fn, cls) => {
+    const b = el('button', cls, label);
+    b.type = 'button';
+    b.title = title;
+    b.onclick = (e) => { e.stopPropagation(); fn(); };
+    tools.append(b);
+  };
+  tool('↑', 'Monter', () => moveAction(t, i, -1));
+  tool('↓', 'Descendre', () => moveAction(t, i, 1));
+  tool('⧉', 'Dupliquer', () => {
+    t.actions.splice(i + 1, 0, structuredClone(a));
+    ui.cursor = { mode: 'index', index: i + 1 };
+    buildScenarioPane();
+    changed(true);
+  });
+  tool('✕', 'Supprimer', () => {
+    t.actions.splice(i, 1);
+    ui.cursor = t.actions.length ? { mode: 'index', index: Math.min(i, t.actions.length - 1) } : { mode: 'end' };
+    buildScenarioPane();
+    changed(true);
+  }, 'del');
+  row.append(time, kind, params, tools);
+  const select = () => {
+    if (ui.cursor.mode === 'index' && ui.cursor.index === i) return;
+    ui.cursor = { mode: 'index', index: i };
+    ui.playing = false;
+    schedulePreview();
+  };
+  row.addEventListener('mousedown', select);
+  row.addEventListener('focusin', select);
+  return row;
+}
+
+function actionParams(t, a) {
+  const edit = () => changed(true);
+  const input = (value, placeholder, onInput, cls = 'text') => {
+    const node = el('input', cls);
+    node.value = value ?? '';
+    node.placeholder = placeholder;
+    node.spellcheck = false;
+    node.oninput = () => onInput(node.value);
+    return node;
+  };
+  const speedInput = () => {
+    const node = input(a.speed, 'vitesse', (v) => {
+      const ok = v === '' || /^\d+(\.\d+)?(ms|s)$/.test(v.trim());
+      node.style.borderColor = ok ? '' : 'var(--danger)';
+      if (ok) { a.speed = v.trim(); edit(); }
+    }, 'mini opt');
+    node.title = 'Vitesse propre à cette action, par exemple 100ms. Vide : celle du style.';
+    return node;
+  };
+  const say = (text) => el('span', 'say', text);
+  switch (a.kind) {
+    case 'type': {
+      const text = input(a.text, 'texte à taper', (v) => { a.text = v; edit(); }, 'text code');
+      return [text, speedInput()];
+    }
+    case 'key': {
+      const key = el('select', 'sel');
+      for (const [k, label] of KEYS) key.append(new Option(label, k));
+      key.value = a.key;
+      key.onchange = () => { a.key = key.value; edit(); };
+      const n = el('input', 'mini');
+      Object.assign(n, { type: 'number', min: 1, value: a.n || 1, title: 'Nombre de fois' });
+      n.oninput = () => { if (n.valueAsNumber >= 1) { a.n = Math.round(n.valueAsNumber); edit(); } };
+      return [key, say('×'), n];
+    }
+    case 'combo': {
+      const mods = el('select', 'sel');
+      for (const m of MODS) mods.append(new Option(m, m));
+      if (!MODS.includes(a.mods)) mods.append(new Option(a.mods, a.mods));
+      mods.value = a.mods;
+      mods.onchange = () => { a.mods = mods.value; edit(); };
+      const key = input(a.key, 'C', (v) => { if (v.trim()) { a.key = v.trim(); edit(); } }, 'mini');
+      return [mods, say('+'), key, say(a.mods === 'Ctrl' && /^[clu]$/i.test(a.key) ? { c: 'interrompt', l: 'efface l’écran', u: 'efface la ligne' }[a.key.toLowerCase()] : '')];
+    }
+    case 'sleep': {
+      const n = el('input', 'mini');
+      Object.assign(n, { type: 'number', min: 0, step: 0.1, value: round(a.dur) });
+      n.oninput = () => { if (n.valueAsNumber >= 0) { a.dur = n.valueAsNumber; edit(); } };
+      return [n, el('span', 'unit', 's')];
+    }
+    case 'wait': {
+      const scope = el('select', 'sel');
+      scope.append(new Option('l’invite', ''), new Option('la ligne', '+Line'), new Option('l’écran', '+Screen'));
+      scope.value = a.scope;
+      scope.title = 'Où chercher le motif : dernière ligne (par défaut) ou tout l’écran';
+      scope.onchange = () => { a.scope = scope.value; edit(); };
+      const pattern = input(a.pattern, 'motif du style', (v) => {
+        const ok = v === '' || /^\/.*\/$/.test(v.trim());
+        pattern.style.borderColor = ok ? '' : 'var(--danger)';
+        if (ok) { a.pattern = v.trim(); edit(); }
+      }, 'text code opt');
+      pattern.title = 'Expression régulière entre barres obliques, par exemple /terminé/. Vide : l’invite (motif du style).';
+      const timeout = input(a.timeout, 'délai', (v) => {
+        const ok = v === '' || /^\d+(\.\d+)?(ms|s)$/.test(v.trim());
+        timeout.style.borderColor = ok ? '' : 'var(--danger)';
+        if (ok) { a.timeout = v.trim(); edit(); }
+      }, 'mini opt');
+      timeout.title = 'Attente maximale propre à cette action, par exemple 30s. Vide : celle du style.';
+      return [scope, pattern, timeout];
+    }
+    case 'hide': return [say('la suite n’est plus filmée')];
+    case 'show': return [say('la suite est de nouveau filmée')];
+    case 'paste': return [say('colle le texte copié')];
+    case 'screenshot': return [input(a.path, 'docs/demo/capture.png', (v) => { a.path = v.trim(); edit(); }, 'text code')];
+    case 'copy': return [input(a.text, 'texte à copier', (v) => { a.text = v; edit(); }, 'text code')];
+    case 'comment': return [input(a.text, 'note (non filmée)', (v) => { a.text = v; edit(); })];
+    default: return [input(a.line, 'commande VHS', (v) => { a.line = v; edit(); }, 'text code')];
+  }
+}
+
+function textEditor(t) {
+  const area = el('textarea', 'tape-text');
+  area.id = 'tape-text';
+  area.value = serializeTape(t);
+  area.spellcheck = false;
+  let timer = null;
+  area.oninput = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      Object.assign(t, parseTape(t.name, area.value));
+      changed();
+    }, 250);
+  };
+  return [area, el('p', 'hint', 'Le fichier tel qu’il sera écrit. Ce que vous tapez ici met à jour la liste d’actions ; la mise en forme est normalisée à l’enregistrement.')];
+}
+
+function deleteTape(name) {
+  delete S.tapes[name];
+  S.order = S.order.filter((n) => n !== name);
+  if (data.tapes.some((t) => t.name === name)) S.deleted.add(name);
+  ui.tape = S.order[0] || null;
+  ui.cursor = { mode: 'end' };
+  buildTabs();
+  buildScenarioPane();
+  changed();
+}
+
+function buildTabs() {
+  const tabs = $('#tabs');
+  tabs.replaceChildren(...(S ? S.order : []).map((name) => {
+    const b = el('button', name === ui.tape ? 'on' : null, name);
+    b.type = 'button';
+    b.dataset.name = name;
+    b.title = S.tapes[name].title.join(' ');
+    b.onclick = () => {
+      if (ui.tape === name) return;
+      ui.tape = name;
+      ui.cursor = { mode: 'end' };
+      ui.playing = false;
+      buildTabs();
+      buildScenarioPane();
+      changed();
+    };
+    return b;
+  }));
+}
+
+// ─── Nouveau GIF ─────────────────────────────────────────────────────────────
+
+function openNewGif(open) {
+  const form = $('#newgif');
+  form.hidden = !open;
+  $('#new-gif').hidden = open;
+  $('#newgif-err').textContent = '';
+  if (open) {
+    form.elements.name.value = '';
+    form.elements.name.focus();
+  }
+}
+
+$('#newgif').elements.env.append(...ENVS.map(([v, label]) => new Option(label, v)));
+$('#new-gif').onclick = () => openNewGif(true);
+$('#newgif-cancel').onclick = () => openNewGif(false);
+$('#newgif').onsubmit = (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const name = form.elements.name.value.trim().toLowerCase();
+  const err = !/^[a-z0-9][a-z0-9_-]{0,39}$/.test(name) ? 'lettres minuscules, chiffres, - et _'
+    : name === 'style' || S.tapes[name] ? 'ce nom est déjà pris' : '';
+  if (err) {
+    $('#newgif-err').textContent = err;
+    return;
+  }
+  S.tapes[name] = newTape(name, form.elements.env.value);
+  S.order.push(name);
+  S.deleted.delete(name);
+  ui.tape = name;
+  ui.cursor = { mode: 'end' };
+  openNewGif(false);
+  setPane('scenario');
+  buildTabs();
+  buildScenarioPane();
+  changed();
+};
+
+// ─── Simulation du terminal ──────────────────────────────────────────────────
+// Rejoue les actions d'un scénario sur un terminal simplifié : ce qui est tapé,
+// les touches courantes, et la sortie des commandes (calculée par le serveur).
+
+function promptSegments(env) {
+  const place = (ENVS.find(([v]) => v === env) || [])[2];
+  if (!place) return [{ text: '> ', fg: { hex: '#5B56E0' } }]; // l'invite de VHS, sans préparation
+  return [{ text: place, fg: { hex: S.prompt.place } }, { text: ' ' }, { text: S.prompt.symbol, fg: { hex: S.prompt.color } }, { text: ' ' }];
+}
+
+const speedOf = (a) => (a.speed ? seconds(a.speed) : S.values.TypingSpeed / 1000);
+
+// Les actions datées sur le temps filmé : un passage masqué ne dure rien à l'image.
+function timeline(t) {
+  const events = [];
+  const steps = [];
+  let time = 0;
+  let hidden = false;
+  // Une saisie (input) arrive après la sortie de la commande en cours : on la montre d'abord.
+  const at = (i, delay, fn, extra = {}) => {
+    if (!hidden) time += delay;
+    events.push({ time, i, fn: extra.input ? (st, ctx) => { flush(st, ctx); fn(st, ctx); } : fn, ...extra });
+  };
+  t.actions.forEach((a, i) => {
+    const start = time;
+    const wasHidden = hidden;
+    switch (a.kind) {
+      case 'type': for (const ch of Array.from(a.text)) at(i, speedOf(a), (st) => { st.input += ch; }, { input: true }); break;
+      case 'key': for (let k = 0; k < (a.n || 1); k++) at(i, speedOf(a), (st, ctx) => pressKey(st, a.key, ctx), { input: true, enter: a.key === 'Enter' }); break;
+      case 'combo': at(i, speedOf(a), (st) => pressCombo(st, a), { input: true }); break;
+      case 'paste': at(i, speedOf(a), (st) => { st.input += st.clipboard; }, { input: true }); break;
+      case 'copy': at(i, 0, (st) => { st.clipboard = a.text; }); break;
+      case 'sleep': if (!hidden) time += a.dur; break;
+      case 'wait': if (!hidden) time += 0.1; break; // la commande répond vite (estimation)
+      case 'hide': hidden = true; break;
+      case 'show': hidden = false; break;
+      default: break;
+    }
+    steps.push({ start, end: time, masked: wasHidden && hidden });
+  });
+  // Après Entrée, la commande tourne : sa sortie apparaît à la fin du « Attendre » qui suit
+  // (avant toute autre saisie), sinon un court instant après. En attendant, le curseur
+  // reste au début de la ligne suivante, comme dans le vrai terminal.
+  const flushes = [];
+  events.forEach((ev, k) => {
+    if (!ev.enter) return;
+    const next = events.slice(k + 1).find((e) => e.input);
+    const wait = t.actions.findIndex((a, j) => j > ev.i && a.kind === 'wait' && (!next || j < next.i));
+    const when = wait >= 0 ? { time: steps[wait].end, i: wait } : { time: Math.min(ev.time + 0.15, next ? next.time : Infinity), i: ev.i };
+    flushes.push({ ...when, time: Math.min(when.time, time), fn: flush, order: k + 0.5 });
+  });
+  events.forEach((ev, k) => { ev.order = k; });
+  const all = [...events, ...flushes].sort((a, b) => a.time - b.time || a.order - b.order);
+  return { events: all, steps, duration: time };
+}
+
+// Comme env.sh : lignes vides après la commande (sauf npm, qui a déjà la sienne) et
+// avant l'invite suivante, sauf après clear. Sans préparation, pas de lignes vides.
+const blankLines = (st) => S.prompt.blank && !!st.env;
+
+function execute(st, ctx) {
+  const command = st.input;
+  const cmd = command.trim();
+  st.lines.push([...promptSegments(st.env), { text: command }]);
+  st.input = '';
+  st.back = 0;
+  if (cmd) {
+    st.history.push(command);
+    if (++st.count >= ctx.finalAt) st.ended = true;
+  }
+  if (cmd === 'clear') {
+    st.lines = [];
+    return;
+  }
+  if (!cmd) {
+    if (blankLines(st) && !st.ended) st.lines.push([]);
+    return;
+  }
+  if (blankLines(st) && !/^npm\s/.test(cmd)) st.lines.push([]);
+  st.pending = { n: st.commands.push(command) - 1, cmd };
+}
+
+// La commande en cours a fini : sa sortie, puis la ligne vide avant l'invite.
+function flush(st, ctx) {
+  if (!st.pending) return;
+  const { n, cmd } = st.pending;
+  st.pending = null;
+  const out = ctx.outputs ? ctx.outputs[n] : undefined;
+  if (out === undefined) st.lines.push([{ text: '…', dim: true }]);
+  else if (out === null) st.lines.push([{ text: `(la sortie de « ${cmd} » apparaîtra au rendu VHS)`, dim: true }]);
+  else if (out !== '') st.lines.push(...parseAnsi(out.replace(/\n$/, '')));
+  if (blankLines(st) && !st.ended) st.lines.push([]);
+}
+
+function pressKey(st, key, ctx) {
+  if (key === 'Enter') execute(st, ctx);
+  else if (key === 'Backspace') st.input = Array.from(st.input).slice(0, -1).join('');
+  else if (key === 'Space') st.input += ' ';
+  else if (key === 'Up' && st.history.length) {
+    st.back = Math.min(st.back + 1, st.history.length);
+    st.input = st.history[st.history.length - st.back];
+  } else if (key === 'Down' && st.back > 0) {
+    st.back--;
+    st.input = st.back ? st.history[st.history.length - st.back] : '';
+  }
+}
+
+function pressCombo(st, a) {
+  if (a.mods !== 'Ctrl') return;
+  const key = a.key.toLowerCase();
+  if (key === 'c') {
+    st.lines.push([...promptSegments(st.env), { text: `${st.input}^C` }]);
+    if (blankLines(st)) st.lines.push([]);
+    st.input = '';
+  } else if (key === 'l') st.lines = [];
+  else if (key === 'u') st.input = '';
+}
+
+// L'écran au moment voulu : un instant (lecture) ou la fin d'une action (sélection).
+function simulate(t, tl, cursor, outputs, finalAt = t.env && t.endOnOutput ? countCommands(t, tl) : Infinity) {
+  const st = { env: t.env, lines: [], input: '', history: [], back: 0, clipboard: '', commands: [], count: 0, ended: false, pending: null };
+  const ctx = { outputs, finalAt };
+  for (const ev of tl.events) {
+    if (cursor.mode === 'time' && ev.time > cursor.time + 1e-9) break;
+    if (cursor.mode === 'index' && ev.i > cursor.index) continue;
+    ev.fn(st, ctx);
+  }
+  if (cursor.mode === 'end') flush(st, ctx);
+  return st;
+}
+
+// Les commandes que le scénario exécute, dans l'ordre (pour en demander la sortie).
+function commandsOf(t, tl) {
+  return simulate(t, tl, { mode: 'end' }, [], Infinity).commands;
+}
+
+// Nombre de lignes de commande exécutées, clear compris : env.sh compte de la même façon.
+function countCommands(t, tl = timeline(t)) {
+  return simulate(t, tl, { mode: 'end' }, [], Infinity).count;
+}
+
+// Sorties des commandes : demandées au serveur un instant après la dernière frappe.
+// En attendant, celles d'un calcul précédent servent pour les commandes inchangées.
+function outputsFor(t, tl, cols) {
+  const commands = commandsOf(t, tl);
+  if (!commands.length) return [];
+  const env = t.env || 'vide';
+  const key = JSON.stringify([env, cols, commands]);
+  if (ui.outputs.has(key)) return ui.outputs.get(key);
+  if (!ui.wanted || ui.wanted.key !== key) {
+    ui.wanted = { key, env, cols, commands, tape: t.name };
+    clearTimeout(ui.outputTimer);
+    ui.outputTimer = setTimeout(fetchOutputs, 300);
+  }
+  const last = ui.lastOutputs[t.name];
+  return commands.map((c, i) => (last && last.commands[i] === c && last.env === env && last.cols === cols ? last.outputs[i] : undefined));
+}
+
+async function fetchOutputs() {
+  const want = ui.wanted;
+  if (!want) return;
+  try {
+    const res = await fetch('/api/outputs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ env: want.env, columns: want.cols, commands: want.commands }) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+    ui.outputs.set(want.key, json.outputs);
+    ui.lastOutputs[want.tape] = { ...want, outputs: json.outputs };
+  } catch (err) {
+    ui.outputs.set(want.key, want.commands.map(() => null));
+    setStatus(`Aperçu : sorties indisponibles (${esc(err.message)})`, 'error');
+  }
+  if (ui.wanted === want) ui.wanted = null;
+  schedulePreview();
+}
+
+// Lignes et colonnes du terminal, mesurées par VHS (voir editor.js) : demandées un
+// instant après le dernier réglage, estimées en attendant.
+const GEOMETRY_SET = /^Set (Shell|FontFamily|FontSize|LineHeight|LetterSpacing|Width|Padding|Margin|WindowBar|WindowBarSize) /;
+
+function geometryFor(t) {
+  const req = { style: serializeStyle().split('\n').filter((l) => GEOMETRY_SET.test(l)).join('\n'), height: Math.round(t.height * S.scale) };
+  const key = JSON.stringify(req);
+  if (ui.geometry.has(key)) return ui.geometry.get(key);
+  if (!ui.wantedGeometry || ui.wantedGeometry.key !== key) {
+    ui.wantedGeometry = { key, req };
+    clearTimeout(ui.geometryTimer);
+    ui.geometryTimer = setTimeout(fetchGeometry, 500);
+  }
+  return null;
+}
+
+async function fetchGeometry() {
+  const want = ui.wantedGeometry;
+  if (!want) return;
+  try {
+    const res = await fetch('/api/geometry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(want.req) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+    ui.geometry.set(want.key, json);
+  } catch (err) {
+    ui.geometry.set(want.key, { error: err.message });
+  }
+  if (ui.wantedGeometry === want) ui.wantedGeometry = null;
+  schedulePreview();
+}
+
+// ─── Aperçu ──────────────────────────────────────────────────────────────────
+// Reproduit la composition de VHS : cadre, fenêtre, barre, marge intérieure, puis
+// l'écran du terminal au moment choisi.
+
+function applySgr(st, params) {
+  const p = params === '' ? [0] : params.split(';').map(Number);
+  let s = { ...st };
+  for (let i = 0; i < p.length; i++) {
+    const n = p[i];
+    if (n === 0) s = {};
+    else if (n === 1) s.bold = true;
+    else if (n === 2) s.dim = true;
+    else if (n === 22) { s.bold = false; s.dim = false; }
+    else if (n >= 30 && n <= 37) s.fg = { i: n - 30 };
+    else if (n >= 90 && n <= 97) s.fg = { i: n - 82 };
+    else if (n === 39) delete s.fg;
+    else if (n >= 40 && n <= 47) s.bg = { i: n - 40 };
+    else if (n >= 100 && n <= 107) s.bg = { i: n - 92 };
+    else if (n === 49) delete s.bg;
+    else if (n === 38 || n === 48) {
+      const key = n === 38 ? 'fg' : 'bg';
+      if (p[i + 1] === 5) { s[key] = { i: p[i + 2] }; i += 2; }
+      else if (p[i + 1] === 2) { s[key] = { rgb: p.slice(i + 2, i + 5) }; i += 4; }
+    }
+  }
+  return s;
+}
+
+function parseAnsi(text) {
+  const lines = [[]];
+  let st = {};
+  for (const m of text.matchAll(/\x1b\[([\d;]*)m|\x1b\[[\d;?]*[A-Za-z]|([^\x1b\n]+)|(\n)/g)) {
+    if (m[1] !== undefined) st = applySgr(st, m[1]);
+    else if (m[2]) lines.at(-1).push({ text: m[2], ...st });
+    else if (m[3]) lines.push([]);
+  }
+  return lines;
+}
+
+const CUBE = [0, 95, 135, 175, 215, 255];
+function resolve(c, colors, bold) {
+  if (!c) return null;
+  if (c.hex) return c.hex;
+  if (c.rgb) return `rgb(${c.rgb.join(',')})`;
+  let i = c.i;
+  if (bold && i < 8) i += 8; // comme xterm.js : le gras éclaircit les 8 premières couleurs
+  if (i < 16) return colors[ANSI[i]];
+  if (i < 232) { const n = i - 16; return `rgb(${CUBE[Math.floor(n / 36)]},${CUBE[Math.floor(n / 6) % 6]},${CUBE[n % 6]})`; }
+  const g = 8 + 10 * (i - 232);
+  return `rgb(${g},${g},${g})`;
+}
+
+// Une ligne trop longue passe à la ligne, comme dans le terminal.
+function wrap(line, cols) {
+  const out = [[]];
+  let n = 0;
+  for (const seg of line) {
+    if (seg.cursor) {
+      if (n >= cols) { out.push([]); n = 0; }
+      out.at(-1).push(seg);
+      n++;
+      continue;
+    }
+    let chars = Array.from(seg.text);
+    while (chars.length) {
+      if (n >= cols) { out.push([]); n = 0; }
+      const take = chars.slice(0, cols - n);
+      out.at(-1).push({ ...seg, text: take.join('') });
+      n += take.length;
+      chars = chars.slice(take.length);
+    }
+  }
+  return out;
+}
+
+const cssFamily = (family) => `${family.split(',').map((f) => f.trim()).filter(Boolean).map((f) => `'${f.replace(/'/g, '')}'`).join(', ')}, monospace`;
+
+const metrics = new Map();
+function measure(family, size) {
+  const key = `${family}|${size}`;
+  if (!metrics.has(key)) {
+    const probe = $('#probe');
+    probe.style.font = `${size}px ${cssFamily(family)}`;
+    probe.style.lineHeight = 'normal';
+    probe.style.letterSpacing = '0';
+    probe.textContent = 'M'.repeat(100);
+    const r = probe.getBoundingClientRect();
+    metrics.set(key, { advance: r.width / 100, height: r.height });
+  }
+  return metrics.get(key);
+}
+
+function barSvg(kind, size, width) {
+  if (!kind || size <= 0) return '';
+  const r = size * 0.14;
+  const gap = size * 0.46;
+  const first = size * 0.475;
+  const right = kind.endsWith('Right');
+  const rings = kind.startsWith('Rings');
+  const circles = ['#FF5F58', '#FFBD2E', '#18C132'].map((color, k) => {
+    const cx = right ? width - first - (2 - k) * gap : first + k * gap;
+    return rings
+      ? `<circle cx="${cx}" cy="${size / 2}" r="${r - 0.5}" fill="none" stroke="${color}" stroke-width="1"/>`
+      : `<circle cx="${cx}" cy="${size / 2}" r="${r}" fill="${color}"/>`;
+  }).join('');
+  return `<svg width="${width}" height="${size}" style="position:absolute;left:0;top:0">${circles}</svg>`;
+}
+
+function segmentHtml(seg, colors, cellW, cellH) {
+  if (seg.cursor) return `<span style="display:inline-block;vertical-align:top;width:${cellW}px;height:${cellH}px;background:${colors.cursor}"></span>`;
+  let style = `color:${resolve(seg.fg, colors, seg.bold) || colors.foreground}`;
+  if (seg.bg) style += `;background:${resolve(seg.bg, colors)}`;
+  if (seg.dim) style += ';opacity:.5';
+  if (seg.bold) style += ';font-weight:700';
+  return `<span style="${style}">${esc(seg.text)}</span>`;
+}
+
+let previewQueued = false;
+function schedulePreview() {
+  if (previewQueued) return;
+  previewQueued = true;
+  requestAnimationFrame(() => {
+    previewQueued = false;
+    drawPreview();
+  });
+}
+
+function drawPreview() {
+  const t = currentTape();
+  const frame = $('#frame');
+  if (!t) {
+    frame.innerHTML = '';
+    frame.style.width = frame.style.height = '0px';
+    $('#frame-wrap').style.width = $('#frame-wrap').style.height = '0px';
+    $('#info').innerHTML = '<span class="note">Aucun GIF.</span>';
+    $('#clock').textContent = '';
+    return;
+  }
+  const v = S.values;
+  const colors = S.theme.colors;
+  const W = Math.max(100, v.Width);
+  const H = Math.max(100, t.height);
+  const margin = Math.max(0, v.Margin);
+  const pad = Math.max(0, v.Padding);
+  const bar = v.WindowBar ? Math.max(0, v.WindowBarSize) : 0;
+  const m = measure(v.FontFamily, v.FontSize);
+  // Mesuré sur des rendus VHS : ses caractères sont ~2,5 % plus larges que dans le
+  // navigateur, et l'interligne 1 arrondit la hauteur de ligne au pixel supérieur.
+  const cellW = m.advance * 1.025 + v.LetterSpacing;
+  const cellH = Math.max(1, v.LineHeight === 1 ? Math.ceil(m.height) : Math.floor(m.height * v.LineHeight));
+  const innerW = W - 2 * margin - 2 * pad;
+  const innerH = H - 2 * margin - bar - 2 * pad;
+  const geo = geometryFor(t);
+  const measured = geo && geo.rows ? geo : null;
+  const cols = measured ? measured.cols : Math.max(1, Math.floor(innerW / cellW));
+  const rows = measured ? measured.rows : Math.max(1, Math.floor(innerH / cellH));
+  // Dessin : des cases qui tiennent dans la fenêtre avec le nombre réel de lignes et de colonnes.
+  const drawW = Math.min(cellW, innerW / cols);
+  const drawH = measured ? Math.min(innerH / rows, cellH * 1.08) : cellH;
+
+  const tl = timeline(t);
+  if (ui.cursor.mode === 'index' && ui.cursor.index >= t.actions.length) ui.cursor = { mode: 'end' };
+  const st = simulate(t, tl, ui.cursor, outputsFor(t, tl, cols));
+  // L'invite finale est invisible, mais elle occupe une ligne du terminal.
+  // Le curseur n'apparaît qu'avec l'invite : ni pendant une commande, ni après l'invite finale masquée.
+  const logical = st.pending ? [...st.lines, []]
+    : st.ended ? [...st.lines, []]
+    : [...st.lines, [...promptSegments(t.env), { text: st.input }, { cursor: true }]];
+  let wrapped = 0;
+  const screen = [];
+  for (const line of logical) {
+    const parts = wrap(line, cols);
+    if (parts.length > 1) wrapped++;
+    screen.push(...parts);
+  }
+  const overflow = Math.max(0, screen.length - rows);
+  const rowsHtml = screen.slice(overflow).map((line) =>
+    `<div style="height:${drawH}px;line-height:${drawH}px">${line.map((seg) => segmentHtml(seg, colors, drawW, drawH)).join('')}</div>`).join('');
+
+  frame.style.width = `${W}px`;
+  frame.style.height = `${H}px`;
+  frame.innerHTML = `
+    <div style="position:absolute;inset:0;background:${margin ? v.MarginFill : colors.background}"></div>
+    <div style="position:absolute;left:${margin}px;top:${margin}px;width:${W - 2 * margin}px;height:${H - 2 * margin}px;border-radius:${v.BorderRadius}px;background:${colors.background};overflow:hidden">
+      ${barSvg(v.WindowBar, bar, W - 2 * margin)}
+      <div style="position:absolute;left:${pad}px;top:${bar + pad}px;width:${Math.max(0, innerW)}px;height:${Math.max(0, innerH)}px;overflow:hidden;font-family:${esc(cssFamily(v.FontFamily))};font-size:${v.FontSize}px;letter-spacing:${drawW - m.advance}px;color:${colors.foreground};white-space:pre">${rowsHtml}</div>
+    </div>`;
+  fitFrame();
+
+  // Moment affiché, action en cours, durées.
+  const speed = v.PlaybackSpeed || 1;
+  const now = ui.cursor.mode === 'time' ? ui.cursor.time : ui.cursor.mode === 'index' ? tl.steps[ui.cursor.index].end : tl.duration;
+  const current = ui.cursor.mode === 'index' ? ui.cursor.index
+    : ui.cursor.mode === 'time' ? tl.steps.findLastIndex((s) => s.start <= now && !s.masked) : -1;
+  const scrub = $('#scrub');
+  scrub.max = Math.max(0.01, tl.duration);
+  scrub.value = now;
+  $('#clock').textContent = `${fmtSec(now / speed)} / ${fmtSec(tl.duration / speed)}`;
+  $('#play').textContent = ui.playing ? '❚❚' : '▶';
+  for (const row of document.querySelectorAll('#acts .act')) {
+    const i = Number(row.dataset.i);
+    const step = tl.steps[i];
+    if (!step) continue;
+    row.classList.toggle('now', i === current);
+    row.classList.toggle('masked', step.masked);
+    row.querySelector('.t').textContent = step.masked ? 'caché' : fmtSec(step.start / speed);
+  }
+
+  const github = v.FontSize * Math.min(1, 880 / W);
+  const info = [
+    S.scale !== 1 ? `${W} × ${H} px (GIF ${W * S.scale} × ${H * S.scale})` : `${W} × ${H} px`,
+    `terminal ${cols} col. × ${rows} lignes ${measured ? '(mesuré par VHS)' : geo && geo.error ? '(estimé : mesure impossible)' : '(estimé, mesure en cours…)'}`,
+    `texte sur GitHub ≈ ${github.toFixed(1).replace('.', ',')} px`,
+    `durée ≈ ${fmtSec(tl.duration / speed)}`,
+  ].map((x) => `<span>${esc(x)}</span>`);
+  if (wrapped) info.push(`<span class="warn">⚠ ${wrapped} ligne${wrapped > 1 ? 's' : ''} trop longue${wrapped > 1 ? 's' : ''} : elle${wrapped > 1 ? 's' : ''} passe${wrapped > 1 ? 'nt' : ''} à la ligne. Élargissez ou réduisez le texte.</span>`);
+  if (overflow) info.push(`<span class="warn">⚠ ${overflow} ligne${overflow > 1 ? 's' : ''} sort${overflow > 1 ? 'ent' : ''} par le haut : augmentez la hauteur de ce GIF.</span>`);
+  info.push('<span class="note">Aperçu approximatif : le rendu VHS fait foi.</span>');
+  $('#info').innerHTML = info.join('');
+}
+
+function fitFrame() {
+  const stage = $('#stage');
+  const frame = $('#frame');
+  const W = parseFloat(frame.style.width);
+  const H = parseFloat(frame.style.height);
+  if (!W || !H) return;
+  const scale = Math.min(1, (stage.clientWidth - 48) / W, (stage.clientHeight - 48) / H);
+  frame.style.transform = `scale(${scale})`;
+  $('#frame-wrap').style.width = `${W * scale}px`;
+  $('#frame-wrap').style.height = `${H * scale}px`;
+}
+
+// ─── Lecture ─────────────────────────────────────────────────────────────────
+
+function play() {
+  const t = currentTape();
+  if (!t) return;
+  if (ui.playing) {
+    ui.playing = false;
+    schedulePreview();
+    return;
+  }
+  const tl = timeline(t);
+  const step = ui.cursor.mode === 'index' ? tl.steps[ui.cursor.index] : null;
+  const from = ui.cursor.mode === 'time' ? ui.cursor.time : step ? step.end : tl.duration;
+  ui.cursor = { mode: 'time', time: from >= tl.duration - 0.01 ? 0 : from };
+  ui.playing = true;
+  setView('apercu');
+  let last = performance.now();
+  const tick = (now) => {
+    if (!ui.playing) return;
+    const duration = timeline(currentTape()).duration;
+    ui.cursor = { mode: 'time', time: Math.min(duration, ui.cursor.time + ((now - last) / 1000) * (S.values.PlaybackSpeed || 1)) };
+    last = now;
+    if (ui.cursor.time >= duration) {
+      ui.playing = false;
+      ui.cursor = { mode: 'end' };
+    }
+    drawPreview();
+    if (ui.playing) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+$('#play').onclick = play;
+$('#scrub').oninput = () => {
+  ui.playing = false;
+  ui.cursor = { mode: 'time', time: Number($('#scrub').value) };
+  schedulePreview();
+};
+
+// ─── Rendu VHS ───────────────────────────────────────────────────────────────
+
+const renderBody = () => ({ name: ui.tape, tape: tapeText(ui.tape), style: serializeStyle() });
+
+async function startRender() {
+  if (ui.rendering || !currentTape()) return;
+  const body = renderBody();
+  ui.rendering = { tape: body.name, started: Date.now() };
+  ui.renderError = null;
+  ui.playing = false;
+  setView('rendu');
+  ui.timer = setInterval(drawRendu, 500);
+  try {
+    const res = await fetch('/api/render', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+    ui.renders[body.name] = { ...json, at: new Date(), signature: JSON.stringify(body), width: Math.round(S.values.Width) };
+  } catch (err) {
+    ui.renderError = { tape: body.name, message: err.message };
+  } finally {
+    clearInterval(ui.timer);
+    ui.rendering = null;
+    drawRendu();
+  }
+}
+
+function drawRendu() {
+  const box = $('#rendu-box');
+  $('#render').disabled = !!ui.rendering || !currentTape();
+  if (ui.view !== 'rendu') return;
+  const r = ui.renders[ui.tape];
+  if (ui.rendering) {
+    const s = Math.round((Date.now() - ui.rendering.started) / 1000);
+    const other = ui.rendering.tape !== ui.tape ? ` de « ${ui.rendering.tape} »` : '';
+    box.innerHTML = `<div class="spinner"></div><div>Rendu VHS${esc(other)} en cours… ${s} s</div><div class="hint">VHS joue le scénario en temps réel ; l’installation passe par le réseau.</div>`;
+    return;
+  }
+  if (!currentTape()) {
+    box.innerHTML = '<div>Aucun GIF.</div>';
+    return;
+  }
+  if (ui.renderError?.tape === ui.tape) {
+    box.innerHTML = `<div>Le rendu a échoué.</div><pre>${esc(ui.renderError.message)}</pre>`;
+    box.append(renderButton('Réessayer'));
+    return;
+  }
+  if (!r) {
+    box.innerHTML = `<div>Aucun rendu pour « ${esc(ui.tape)} ».</div><div class="hint">VHS joue le scénario tel qu’il est dans la page, dans un dossier temporaire : docs/demo n’est pas modifié.</div>`;
+    box.append(renderButton('Lancer le rendu VHS'));
+    return;
+  }
+  const fresh = r.signature === JSON.stringify(renderBody());
+  box.innerHTML = `<img src="${esc(r.url)}" style="width:${r.width}px" alt="Rendu VHS de ${esc(ui.tape)}">
+    <div class="rendu-meta"><span>Rendu de ${r.at.toLocaleTimeString('fr-FR')} · GIF de ${fmtSec(r.duration / 1000)} · ${Math.round(r.size / 1024)} Ko · calculé en ${fmtSec(r.ms / 1000)}</span>
+    <span class="badge ${fresh ? 'fresh' : 'stale'}">${fresh ? 'à jour' : 'modifié depuis'}</span></div>`;
+  if (!fresh) box.querySelector('.rendu-meta').append(renderButton('Relancer'));
+}
+
+function renderButton(label) {
+  const b = el('button', 'btn', label);
+  b.type = 'button';
+  b.onclick = startRender;
+  return b;
+}
+
+function setView(view) {
+  ui.view = view;
+  for (const b of $('#views').children) b.classList.toggle('on', b.dataset.view === view);
+  $('#frame-wrap').hidden = view !== 'apercu';
+  $('#rendu-box').hidden = view !== 'rendu';
+  $('#transport').hidden = view !== 'apercu';
+  if (view === 'rendu') {
+    ui.playing = false;
+    drawRendu();
+  } else schedulePreview();
+}
+
+function setPane(pane) {
+  ui.pane = pane;
+  for (const b of $('#panes').children) b.classList.toggle('on', b.dataset.pane === pane);
+  $('#pane-scenario').hidden = pane !== 'scenario';
+  $('#pane-style').hidden = pane !== 'style';
+}
+
+// ─── Enregistrement ──────────────────────────────────────────────────────────
+
+function setStatus(html, kind = '') {
+  const status = $('#status');
+  status.className = `status ${kind}`;
+  status.innerHTML = html;
+}
+
+async function save() {
+  if (!isDirty()) return;
+  $('#save').disabled = true;
+  setStatus('Enregistrement…');
+  try {
+    const body = { style: serializeStyle(), tapes: Object.fromEntries(S.order.map((n) => [n, tapeText(n)])), deleted: [...S.deleted] };
+    const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+    load(json);
+    setStatus(`Enregistré à ${new Date().toLocaleTimeString('fr-FR')}. Pour régénérer les GIFs : <code>sh docs/demo/render.sh</code>`, 'ok');
+  } catch (err) {
+    setStatus(`Échec de l’enregistrement : ${esc(err.message)}`, 'error');
+    $('#save').disabled = false;
+  }
+}
+
+// Après toute modification. `tapeChanged` : le texte du scénario affiché en mode
+// texte doit suivre (description, préparation, hauteur, actions).
+function changed(tapeChanged = false) {
+  if (!S) return;
+  const dirty = isDirty();
+  $('#save').disabled = !dirty;
+  $('#revert').disabled = !dirty;
+  if (dirty) setStatus('● Modifications non enregistrées', 'dirty');
+  else if (!$('#status').classList.contains('ok')) setStatus('');
+  $('#code').textContent = serializeStyle();
+  const snippet = $('#readme-snippet');
+  if (snippet && currentTape()) snippet.value = readmeSnippet(currentTape());
+  const savedTexts = Object.fromEntries(data.tapes.map((t) => [t.name, t.text]));
+  for (const b of $('#tabs').children) b.classList.toggle('modified', savedTexts[b.dataset.name] !== tapeText(b.dataset.name));
+  const area = $('#tape-text');
+  if (tapeChanged && area && document.activeElement !== area) area.value = tapeText(ui.tape);
+  schedulePreview();
+  drawRendu();
+}
+
+// ─── Démarrage ───────────────────────────────────────────────────────────────
+
+for (const b of $('#views').children) b.onclick = () => setView(b.dataset.view);
+for (const b of $('#panes').children) b.onclick = () => setPane(b.dataset.pane);
+$('#render').onclick = startRender;
+$('#save').onclick = save;
+$('#revert').onclick = () => { load(data); setStatus('Dernière version enregistrée rétablie.'); };
+new ResizeObserver(fitFrame).observe($('#stage'));
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    save();
+  } else if (e.key === ' ' && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName)) {
+    e.preventDefault();
+    play();
+  }
+});
+window.addEventListener('beforeunload', (e) => {
+  if (isDirty()) e.preventDefault();
+});
+
+(async () => {
+  try {
+    const res = await fetch('/api/state');
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    const json = await res.json();
+    await document.fonts.ready;
+    load(json);
+  } catch (err) {
+    document.querySelector('main').innerHTML = `<p class="fatal">Impossible de charger l’éditeur : ${esc(err.message)}</p>`;
+  }
+})();
+</script>
+</body>
+</html>
