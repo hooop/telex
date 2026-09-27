@@ -53,8 +53,9 @@ export function wrap(text, width) {
 }
 
 // Ligne de tirets entre deux entrées ; une colonne de moins pour éviter le retour à la ligne automatique du terminal.
-export function separator(width, s = style) {
-  return `${s.muted}${'-'.repeat(Math.max(1, width - 1))}${s.reset}`;
+// `margin` : colonnes laissées vides à gauche, pour suivre un en-tête décalé d'autant.
+export function separator(width, s = style, margin = 0) {
+  return `${' '.repeat(margin)}${s.muted}${'-'.repeat(Math.max(1, width - 1 - margin))}${s.reset}`;
 }
 
 // Battement pour une étape en cours : rond vide gris au repos, puis double pulsation
@@ -105,13 +106,13 @@ export function duration(secs) {
 
 // Panneau d'aperçu de l'étape sélectionnée, en bas de la timeline compacte.
 // Hauteur fixe (`height` lignes) pour que la liste ne saute pas d'une étape à l'autre.
-export function previewLines(entry, { index, count, width, height, now = Date.now(), s = style }) {
+export function previewLines(entry, { index, count, width, height, now = Date.now(), s = style, margin = 0 }) {
   const textWidth = Math.max(20, width - 2);
   let info = `étape ${index + 1}/${count} · ${STATUS_LABEL[entry.status]}`;
   if (entry.status === 'running') info += ` depuis ${duration(Math.max(0, Math.round((now - Date.parse(entry.ts)) / 1000)))}`;
   else if (entry.end_ts && !isStandaloneCheck(entry)) info += ` · ${duration(Math.round((Date.parse(entry.end_ts) - Date.parse(entry.ts)) / 1000))}`;
   // Même habillage qu'une étape complète : pointillés, en-tête, pointillés, récit.
-  const lines = [separator(width, s), `  ${s.bright}${info}${s.reset}`, separator(width, s)];
+  const lines = [separator(width, s, margin), `  ${s.bright}${info}${s.reset}`, separator(width, s, margin)];
 
   const body = [];
   const dim = entry.status === 'replaced' ? s.dim : '';

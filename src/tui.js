@@ -9,6 +9,7 @@ import { agentLabel } from './agents.js';
 import { buttonBar, clock, diffLines, duration, entryLines, footerSummary, header, ICON_COLOR, previewLines, separator, SPINNER_TICKS, STATUS_LABEL, style as s, visibleLength, wrap } from './render.js';
 
 const LIVENESS_EVERY_MS = 2000; // vérification que l'agent tourne encore
+const MARGIN = 1; // colonne laissée libre à gauche de l'en-tête et des pointillés, où se place le repère ›
 
 // `input` et `output` sont injectables pour les tests. `onFatal` reçoit une erreur
 // inattendue, une fois le terminal restauré. `notice` : message initial en bas d'écran.
@@ -73,14 +74,14 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
     const rows = [];
     const starts = [];
     timeline.entries.forEach((entry, i) => {
-      rows.push(separator(width, s));
+      rows.push(separator(width, s, MARGIN));
       starts.push(rows.length);
       const lines = entryLines(entry, width, s, { tick, gutter: 2, compact: true });
       if (i === selected) lines[0] = `${s.accent}›${s.reset} ` + lines[0].slice(2);
       rows.push(...lines);
       starts[i] = [starts[i], rows.length - 1];
     });
-    if (timeline.entries.length) rows.push(separator(width, s));
+    if (timeline.entries.length) rows.push(separator(width, s, MARGIN));
     return { rows, starts };
   }
 
@@ -138,7 +139,7 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
     sec('Commandes observées');
     if (meta.agent === 'codex') rows.push(`${s.dim}Non disponibles avec Codex dans cette version : seul le récit de l’agent et les fichiers sont observés.${s.reset}`);
     else if (!cmds.length) rows.push(`${s.dim}Aucune commande shell observée pendant cette étape.${s.reset}`);
-    else for (const c of cmds) rows.push(...commandLine(c, w, false));
+    else cmds.forEach((c, i) => rows.push(...(i ? [separator(w, s)] : []), ...commandLine(c, w, false)));
 
     if (entry.evidence?.length) {
       sec('Preuves citées par l’agent');
@@ -255,7 +256,7 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
       if (!follow && unseen) body[body.length - 1] = `  ${s.accent}↓ ${unseen} nouvelle${unseen > 1 ? 's' : ''} étape${unseen > 1 ? 's' : ''} — [Fin] pour suivre${s.reset}`;
       if (panelHeight) {
         while (body.length < bodyHeight) body.push('');
-        body.push(...previewLines(entry, { index: selected, count: n, width, height: panelHeight, s }));
+        body.push(...previewLines(entry, { index: selected, count: n, width, height: panelHeight, s, margin: MARGIN }));
       }
     } else {
       const bodyHeight = height - head.length - 2;
@@ -274,7 +275,7 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
   }
 
   function headLines(width) {
-    return header(meta, timeline.session, s, width - 1, tick).map((l) => ' ' + l);
+    return header(meta, timeline.session, s, width - MARGIN, tick).map((l) => ' '.repeat(MARGIN) + l);
   }
 
   // Anime l'en-tête seul : on réécrit ses lignes sans toucher au reste de l'écran.

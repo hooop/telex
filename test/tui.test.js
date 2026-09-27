@@ -56,6 +56,45 @@ test('interface : timeline, vue tests, sorties de commandes nettoyées, et termi
   assert.equal(process.listenerCount('uncaughtException'), listeners);
 });
 
+test('interface : les pointillés de la timeline sont alignés sur l’en-tête, le repère › reste à leur gauche', async (t) => {
+  const dir = writeSession(home, '20260120-000000-0005', { ended_at: '2026-09-22T10:05:00.000Z' }, [
+    { ...STEP, ts: '2026-09-22T10:00:00.000Z', event: 'start', step_id: 'f', title: 'Ajouter le panier', narrative: 'Un panier par client.' },
+    { ...STEP, ts: '2026-09-22T10:01:00.000Z', event: 'start', step_id: 'p', title: 'Payer la commande' },
+    { type: 'session_end', ts: '2026-09-22T10:05:00.000Z', exit_code: 0 },
+  ]);
+  const ui = start(t, dir);
+  await waitFor(() => ui.last().includes('Payer la commande'));
+  const lines = ui.last().replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').split('\n');
+  const border = lines[0];
+  const dashes = lines.filter((l) => /^\s*-+$/.test(l));
+  assert.match(border, /^ -+\+-+$/);
+  assert.ok(dashes.length >= 5); // trois entre les étapes, deux dans le panneau d'aperçu
+  for (const l of dashes) assert.equal(l, ' ' + '-'.repeat(border.length - 1));
+  assert.match(lines.find((l) => l.includes('Payer la commande')), /^› \d\d:\d\d:\d\d/);
+  ui.press('q');
+  await waitFor(() => ui.quitted());
+});
+
+test('interface : dans les détails, les commandes observées sont séparées par une ligne de tirets', async (t) => {
+  const dir = writeSession(home, '20260120-000000-0004', { ended_at: '2026-09-22T10:05:00.000Z' }, [
+    { ...STEP, ts: '2026-09-22T10:00:00.000Z', event: 'start', step_id: 'f', title: 'Ajouter le panier' },
+    { type: 'session_end', ts: '2026-09-22T10:05:00.000Z', exit_code: 0 },
+  ]);
+  fs.writeFileSync(path.join(dir, 'observed.jsonl'), ['echo un', 'echo deux'].map((command, i) => JSON.stringify({
+    type: 'command', ts: `2026-09-22T10:0${i + 1}:00.000Z`, command, ok: true,
+  }) + '\n').join(''));
+  const ui = start(t, dir);
+  await waitFor(() => ui.screen().includes('Ajouter le panier'));
+  ui.press('\r');
+  await waitFor(() => ui.last().includes('echo deux'));
+  const frame = ui.last();
+  assert.match(frame.slice(frame.indexOf('echo un'), frame.indexOf('echo deux')), /\n {2}\S*-{20,}/);
+  assert.doesNotMatch(frame.slice(frame.indexOf('Commandes observées'), frame.indexOf('echo un')), /-{20,}/);
+  ui.press('q');
+  ui.press('q');
+  await waitFor(() => ui.quitted());
+});
+
 test('interface : les erreurs internes de telex s’affichent en bas de l’écran', async (t) => {
   const dir = writeSession(home, '20260120-000000-0002', { ended_at: '2026-09-22T10:05:00.000Z' });
   const ui = start(t, dir, { notice: 'git introuvable : les fichiers et le diff par étape seront indisponibles.' });
