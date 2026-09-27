@@ -75,6 +75,8 @@ Vérifiez que l'agent répond : `claude --version` ou `codex --version`.
 
 ### Depuis GitHub
 
+<img src="docs/demo/install.gif" width="450" alt="Installation depuis GitHub">
+
 ```bash
 npm install -g github:hooop/telex
 telex --version
