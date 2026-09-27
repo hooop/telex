@@ -9,13 +9,13 @@ const ESC = '\x1b[';
 export const style = {
   // Pas de gras : `bold` reste vide pour que tous ses usages s'affichent en graisse normale.
   reset: `${ESC}0m`, bold: '', dim: `${ESC}2m`, underline: `${ESC}4m`, inverse: `${ESC}7m`,
-  ok: `${ESC}38;5;195m`, //       bleu pâle : étape réalisée ou vérifiée, ajout dans un diff
-  error: `${ESC}38;5;225m`, //    rose pâle : erreur, fait contradictoire, retrait dans un diff
+  ok: `${ESC}38;5;195m`, //       bleu pâle : étape réalisée ou vérifiée
+  error: `${ESC}38;5;225m`, //    rose pâle : erreur, fait contradictoire
   accent: `${ESC}38;5;230m`, //   crème : étape en cours, touches, sélection
   muted: `${ESC}2;38;5;231m`, //  blanc atténué : détails secondaires, filets
   bright: `${ESC}38;5;231m`, //   blanc : heures, logo, informations principales
-  check: `${ESC}38;5;49m`, //     vert : icône ✓
-  cross: `${ESC}38;5;196m`, //    rouge : icône ✕
+  check: `${ESC}38;5;49m`, //     vert : icône ✓, nombre de lignes ajoutées d'un diff
+  cross: `${ESC}38;5;196m`, //    rouge : icône ✕, nombre de lignes retirées d'un diff
 };
 
 export const plain = Object.fromEntries(Object.keys(style).map((k) => [k, '']));
@@ -285,4 +285,166 @@ export function footerSummary(entries, s = style) {
   if (n('replaced')) parts.push(`${n('replaced')} approche${n('replaced') > 1 ? 's' : ''} remplacée${n('replaced') > 1 ? 's' : ''}`);
   if (n('running')) parts.push(`${n('running')} non terminée${n('running') > 1 ? 's' : ''}`);
   return [`${s.dim}Bilan : ${parts.join(' · ')}${s.reset}`];
+}
+
+// ─── Diff ──────────────────────────────────────────────────────────────────
+// Présentation reprise de Claude Code : un en-tête par fichier, puis chaque ligne
+// avec son numéro, son marqueur et un fond sur toute la largeur, rose pâle pour
+// l'ancien texte, vert pâle pour le nouveau. Quand une ligne retirée et celle qui la
+// remplace se ressemblent, les mots qui changent ressortent d'un fond plus soutenu.
+
+// Couleurs du diff clair de Claude Code ; en 256 couleurs, les teintes voisines
+// (le mot retiré est forcé à 217, sinon il tomberait sur la même teinte que sa ligne).
+const DIFF_BG = {
+  added: TRUECOLOR ? '#dcffdc' : 194,
+  removed: TRUECOLOR ? '#ffdcdc' : 224,
+  addedWord: TRUECOLOR ? '#b2ffb2' : 157,
+  removedWord: TRUECOLOR ? '#ffc7c7' : 217,
+};
+// Texte foncé explicite : celui du terminal, souvent clair, serait illisible sur ces fonds.
+const DIFF_FG = { text: '#333333', added: '#248a3d', removed: '#cf222e' }; // code, numéro et marqueur
+const WORD_DIFF_MAX = 0.4; //       au-delà de 40 % de texte changé, surligner les mots n'aide plus
+const WORD_DIFF_CELLS = 40_000; //  taille maximale de la comparaison mot à mot d'une paire de lignes
+
+// Découpe la sortie de `git diff-tree -p` en fichiers et en lignes numérotées.
+// Les compteurs de l'en-tête « @@ » délimitent chaque bloc : une ligne « --- » ou
+// « +++ » à l'intérieur est du contenu. Une ligne vide y est une ligne de contexte
+// vide dont l'espace a été perdue. Toute autre ligne clôt le bloc (le masquage des
+// secrets peut avoir fondu plusieurs lignes en une).
+function parseDiff(text) {
+  const files = [];
+  let file = null;
+  let oldNo = 0;
+  let newNo = 0;
+  let oldLeft = 0;
+  let newLeft = 0;
+  for (const line of text.split('\n')) {
+    if (line.startsWith('\\')) continue; // « \ No newline at end of file »
+    if ((oldLeft > 0 || newLeft > 0) && /^([ +-]|$)/.test(line)) {
+      const content = line.slice(1);
+      if (line[0] === '+') { file.lines.push({ kind: 'added', no: newNo++, text: content }); file.added++; newLeft--; }
+      else if (line[0] === '-') { file.lines.push({ kind: 'removed', no: oldNo++, text: content }); file.removed++; oldLeft--; }
+      else { file.lines.push({ kind: 'context', no: newNo++, text: content }); oldNo++; oldLeft--; newLeft--; }
+      continue;
+    }
+    oldLeft = newLeft = 0;
+    const hunk = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+    if (line.startsWith('diff --git ')) {
+      const [, path = line.slice(11)] = line.match(/^diff --git "?a\/(.+?)"? "?b\/\1"?$/) || [];
+      file = { path, status: 'modifié', lines: [], added: 0, removed: 0, binary: false };
+      files.push(file);
+    } else if (!file) {
+      continue;
+    } else if (hunk) {
+      if (file.lines.length) file.lines.push({ kind: 'gap' });
+      [oldNo, oldLeft, newNo, newLeft] = [hunk[1], hunk[2] ?? 1, hunk[3], hunk[4] ?? 1].map(Number);
+    } else if (line.startsWith('new file mode')) file.status = 'ajouté';
+    else if (line.startsWith('deleted file mode')) file.status = 'supprimé';
+    else if (line.startsWith('Binary files ')) file.binary = true;
+  }
+  return files;
+}
+
+// Mots, espaces et signes : les unités de la comparaison mot à mot.
+const tokens = (text) => text.match(/[\p{L}\p{N}_]+|\s+|[^\p{L}\p{N}_\s]/gu) || [];
+
+// Caractères changés entre deux versions d'une ligne (plus longue sous-suite commune
+// de leurs mots), ou null si les lignes diffèrent trop pour que le détail aide.
+function wordChanges(before, after) {
+  const a = tokens(before);
+  const b = tokens(after);
+  if (!a.length || !b.length || a.length * b.length > WORD_DIFF_CELLS) return null;
+  const m = b.length + 1;
+  const lcs = new Uint16Array((a.length + 1) * m);
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let j = b.length - 1; j >= 0; j--) {
+      lcs[i * m + j] = a[i] === b[j] ? lcs[(i + 1) * m + j + 1] + 1 : Math.max(lcs[(i + 1) * m + j], lcs[i * m + j + 1]);
+    }
+  }
+  const flags = (list) => list.map((t) => ({ t, changed: true }));
+  const fa = flags(a);
+  const fb = flags(b);
+  for (let i = 0, j = 0; i < a.length && j < b.length;) {
+    if (a[i] === b[j]) { fa[i++].changed = false; fb[j++].changed = false; }
+    else if (lcs[(i + 1) * m + j] >= lcs[i * m + j + 1]) i++;
+    else j++;
+  }
+  const perChar = (list) => list.flatMap(({ t, changed }) => [...t].map(() => changed));
+  const ca = perChar(fa);
+  const cb = perChar(fb);
+  const changed = [...ca, ...cb].filter(Boolean).length;
+  return changed / (ca.length + cb.length) > WORD_DIFF_MAX ? null : [ca, cb];
+}
+
+// Associe chaque ligne retirée à la ligne ajoutée de même rang qui la suit.
+function pairChanges(lines) {
+  for (let i = 0; i < lines.length;) {
+    if (lines[i].kind !== 'removed') { i++; continue; }
+    let r = i;
+    while (lines[r]?.kind === 'removed') r++;
+    let a = r;
+    while (lines[a]?.kind === 'added') a++;
+    for (let k = 0; k < Math.min(r - i, a - r); k++) {
+      const pair = wordChanges(lines[i + k].text, lines[r + k].text);
+      if (pair) [lines[i + k].words, lines[r + k].words] = pair;
+    }
+    i = a;
+  }
+}
+
+// Une ligne de code : numéro, marqueur, texte coupé à la largeur (l'indentation
+// est conservée), fond sur toute la largeur pour les lignes ajoutées ou retirées.
+function codeRows(line, digits, width, s) {
+  const room = Math.max(10, width - digits - 3);
+  const chars = [...line.text];
+  const chunks = [];
+  for (let i = 0; i === 0 || i < chars.length; i += room) chunks.push(i);
+  if (line.kind === 'context') {
+    return chunks.map((i, n) => `${s.dim}${n ? ' '.repeat(digits) : String(line.no).padStart(digits)}${s.reset}   ${chars.slice(i, i + room).join('')}`);
+  }
+  const added = line.kind === 'added';
+  const lineBg = bg(s, added ? DIFF_BG.added : DIFF_BG.removed);
+  const wordBg = bg(s, added ? DIFF_BG.addedWord : DIFF_BG.removedWord);
+  const markFg = fg(s, added ? DIFF_FG.added : DIFF_FG.removed);
+  return chunks.map((i, n) => {
+    const gutter = `${n ? ' '.repeat(digits) : String(line.no).padStart(digits)} ${n ? ' ' : added ? '+' : '-'} `;
+    let row = `${lineBg}${markFg}${gutter}${fg(s, DIFF_FG.text)}`;
+    let current = lineBg;
+    for (let k = i; k < Math.min(chars.length, i + room); k++) {
+      const want = line.words?.[k] ? wordBg : lineBg;
+      if (want !== current) { row += want; current = want; }
+      row += chars[k];
+    }
+    if (current !== lineBg) row += lineBg;
+    const fill = s.reset ? ' '.repeat(room - Math.min(room, chars.length - i)) : '';
+    return `${row}${fill}${s.reset}`;
+  });
+}
+
+// Lignes de la vue diff, à partir de la sortie de `git diff-tree -p` déjà nettoyée.
+// `width` : colonnes disponibles pour chaque ligne.
+export function diffLines(text, width, s = style) {
+  const files = parseDiff(text);
+  const added = files.reduce((n, f) => n + f.added, 0);
+  const removed = files.reduce((n, f) => n + f.removed, 0);
+  const counts = (plus, minus) => [plus && `${s.check}+${plus}${s.reset}`, minus && `${s.cross}-${minus}${s.reset}`].filter(Boolean).join(' ');
+  const total = counts(added, removed);
+  const out = [`${s.dim}${files.length} fichier${files.length > 1 ? 's' : ''}${s.reset}${total ? `  ${total}` : ''}`];
+  for (const file of files) {
+    const fileCounts = counts(file.added, file.removed);
+    out.push('', `${s.bright}${file.path}${s.reset}  ${s.dim}${file.status}${s.reset}${fileCounts ? `  ${fileCounts}` : ''}`);
+    out.push(`${s.muted}${'-'.repeat(Math.max(1, width))}${s.reset}`);
+    if (file.binary) { out.push(`${s.dim}Fichier binaire : contenu non affiché.${s.reset}`); continue; }
+    if (!file.lines.length) {
+      out.push(`${s.dim}${file.status === 'modifié' ? 'Droits du fichier modifiés, contenu inchangé.' : 'Fichier vide.'}${s.reset}`);
+      continue;
+    }
+    pairChanges(file.lines);
+    const digits = String(file.lines.reduce((max, l) => Math.max(max, l.no || 0), 0)).length;
+    for (const line of file.lines) {
+      if (line.kind === 'gap') out.push(`${s.dim}${' '.repeat(digits - 1)}⋯${s.reset}`);
+      else out.push(...codeRows(line, digits, width, s));
+    }
+  }
+  return out;
 }

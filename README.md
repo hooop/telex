@@ -364,18 +364,19 @@ Messages possibles dans `Fichiers concernés` :
 ```text
   Diff : Corriger la configuration de Resend
 
-  diff --git a/src/mail.js b/src/mail.js
-  index 7418200..6aa9b29 100644
-  --- a/src/mail.js
-  +++ b/src/mail.js
-  @@ -1,6 +1,6 @@
-   import { Resend } from 'resend';
+  1 fichier  +1 -1
 
-  -const resend = new Resend(process.env.RESEND_KEY);
-  +const resend = new Resend(process.env.RESEND_API_KEY);
+  src/mail.js  modifié  +1 -1
+  ------------------------------------------------------------
+  1   import { Resend } from 'resend';
+  2
+  3 - const resend = new Resend(process.env.RESEND_KEY);
+  3 + const resend = new Resend(process.env.RESEND_API_KEY);
+  4
+  5   export async function send(to, subject, html) {
 ```
 
-Le diff est calculé entre l'instantané du début et celui de la fin de l'étape : lignes ajoutées en bleu pâle, retirées en rose, repères `@@` en crème. Les secrets qu'il contiendrait sont masqués, et les fichiers exclus des instantanés (fichiers sensibles, fichiers de plus de 1 Mo) n'y figurent pas.
+Le diff est calculé entre l'instantané du début et celui de la fin de l'étape. Sa présentation reprend celle de Claude Code : pour chaque fichier, son chemin, son statut (ajouté, modifié, supprimé) et le nombre de lignes ajoutées et retirées, puis ses lignes numérotées. L'ancien texte est sur fond rose pâle, avec son numéro dans l'ancienne version et son `-` en rouge ; le nouveau sur fond vert pâle, avec son numéro dans la nouvelle version et son `+` en vert. Le code y est écrit en gris foncé. Quand une ligne retirée et celle qui la remplace se ressemblent, les mots qui changent ressortent d'un fond plus soutenu. Un `⋯` sépare deux parties éloignées d'un même fichier, et une ligne trop longue continue sous son texte. Les secrets qu'il contiendrait sont masqués, et les fichiers exclus des instantanés (fichiers sensibles, fichiers de plus de 1 Mo) n'y figurent pas.
 
 ### La vue tests `[T]`
 

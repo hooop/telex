@@ -6,7 +6,7 @@ import { Workspace } from './workspace.js';
 import { redact } from './redact.js';
 import { sanitize } from './sanitize.js';
 import { agentLabel } from './agents.js';
-import { buttonBar, clock, duration, entryLines, footerSummary, header, ICON_COLOR, previewLines, separator, SPINNER_TICKS, STATUS_LABEL, style as s, visibleLength, wrap } from './render.js';
+import { buttonBar, clock, diffLines, duration, entryLines, footerSummary, header, ICON_COLOR, previewLines, separator, SPINNER_TICKS, STATUS_LABEL, style as s, visibleLength, wrap } from './render.js';
 
 const LIVENESS_EVERY_MS = 2000; // vérification que l'agent tourne encore
 
@@ -31,6 +31,7 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
   let notice = initialNotice; // dernière erreur ou information, affichée au-dessus du menu
   let snapshotError = null; // dernière erreur d'instantané, citée dans les détails
   const diffCache = new Map();
+  let diffView = { key: null, rows: [] }; // dernier diff mis en forme
 
   const ws = () => (workspace ??= new Workspace(sessionDir, meta.cwd));
 
@@ -179,14 +180,10 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
     if (!diffCache.has(key)) diffCache.set(key, redact(sanitize(ws().diff(files.from, files.to))));
     const diff = diffCache.get(key);
     if (!diff.trim()) { rows.push(`${s.dim}Aucune modification de fichier pendant cette étape.${s.reset}`); return rows; }
-    for (const l of diff.split('\n')) {
-      const t = [...l].slice(0, width - 1).join('');
-      if (l.startsWith('+++') || l.startsWith('---') || l.startsWith('diff ') || l.startsWith('index ')) rows.push(`${s.bold}${t}${s.reset}`);
-      else if (l.startsWith('+')) rows.push(`${s.ok}${t}${s.reset}`);
-      else if (l.startsWith('-')) rows.push(`${s.error}${t}${s.reset}`);
-      else if (l.startsWith('@@')) rows.push(`${s.accent}${t}${s.reset}`);
-      else rows.push(t);
-    }
+    // Mise en forme (comparaison mot à mot comprise) gardée tant que le diff et la largeur ne changent pas.
+    // Largeur : 2 colonnes de marge, et la dernière laissée vide.
+    if (diffView.key !== `${key}@${width}`) diffView = { key: `${key}@${width}`, rows: diffLines(diff, width - 3, s) };
+    rows.push(...diffView.rows);
     return rows;
   }
 
