@@ -14,7 +14,7 @@ Vous travaillez avec votre agent comme d'habitude, dans sa propre fenêtre. À c
    ▀████▀  | PROJET ▸ mon-projet   AGENT ▸ Claude Code
  ----------+-----------------------------------------------------------------
 
-  14:32:04  ◒  Ajouter la réinitialisation du mot de passe
+  14:32:04  ○  Ajouter la réinitialisation du mot de passe
 -----------------------------------------------------------------------------
   14:32:20  ✓  Examiner l’authentification existante
 -----------------------------------------------------------------------------
@@ -28,7 +28,7 @@ Vous travaillez avec votre agent comme d'habitude, dans sa propre fenêtre. À c
 -----------------------------------------------------------------------------
   14:41:16  ✓  Conserver les tokens dans la base de données
 -----------------------------------------------------------------------------
-› 14:42:30  ◒  Relier le formulaire au serveur
+› 14:42:30  ○  Relier le formulaire au serveur
 -----------------------------------------------------------------------------
   étape 8/8 · en cours depuis 42 s
 -----------------------------------------------------------------------------
@@ -48,7 +48,7 @@ Vous travaillez avec votre agent comme d'habitude, dans sa propre fenêtre. À c
 - [Installation](#installation)
 - [Démarrage rapide](#démarrage-rapide)
 - [Commandes](#commandes)
-- [Lire l'écran](#lire-lécran)
+- [Les vues](#les-vues)
 - [Raccourcis clavier](#raccourcis-clavier)
 - [Fonctionnement](#fonctionnement)
 - [Terminaux pris en charge](#terminaux-pris-en-charge)
@@ -223,193 +223,14 @@ Ces commandes sont appelées par l'agent et par le script de lancement. Vous n'a
 | `telex hook claude` | Claude Code, après chaque commande shell : enregistre la commande observée |
 | `telex end <id> <code>` | le script de lancement, quand l'agent s'arrête : enregistre la fin de session |
 
-## Lire l'écran
+## Les vues
 
-### L'en-tête
+La timeline est l'écran principal. Les trois autres vues portent sur l'étape sélectionnée (`↑` `↓` pour en changer).
 
-```text
- ----------+-----------------------------------------------------------------
-   ▄████▄  | T E L E X                                     ● EN DIRECT  11:08
-  ▐ █  █ ▌ |-----------------------------------------------------------------
-   ▀████▀  | PROJET ▸ mon-projet   AGENT ▸ Claude Code
- ----------+-----------------------------------------------------------------
-```
-
-| Élément | Signification |
-|---|---|
-| La mascotte | Cligne des yeux tant que la session est en direct. Elle disparaît sur un terminal étroit. |
-| `T E L E X` | Le logo, tapé lettre par lettre à l'ouverture. |
-| `● EN DIRECT` | L'agent tourne. Le voyant pulse. |
-| `■ SESSION TERMINÉE` | L'agent s'est arrêté normalement. |
-| `■ SESSION INTERROMPUE` | L'agent a disparu sans que la fin soit enregistrée (voir [Fonctionnement](#détection-des-sessions-interrompues)). |
-| `11:08` | Temps écoulé depuis le début de la session (`MM:SS`, ou `H:MM:SS` au-delà d'une heure). En fin de session, sa durée totale. |
-| `PROJET ▸` | Nom du dossier dans lequel `telex claude` ou `telex codex` a été lancé. |
-| `AGENT ▸` | Claude Code ou Codex. |
-
-Sur un terminal étroit, le chrono puis l'état s'effacent pour laisser la place au texte.
-
-### Les lignes de la timeline
-
-```text
-  14:36:00  ✕  Configurer l’accès à Resend
-  │         │  └ titre de l'étape, écrit par l'agent
-  │         └ statut
-  └ heure de DÉBUT de l'étape (heure locale)
-```
-
-Une ligne naît quand l'agent **commence** une étape. Son statut change ensuite **sur place**, et elle ne disparaît jamais. Les étapes futures ne sont jamais affichées à l'avance.
-
-| Symbole | Statut | Événement de l'agent | Signification |
-|---|---|---|---|
-| `◐ ◓ ◑ ◒` (animé) | en cours | `start` | L'étape a commencé. Hors de l'interface interactive (`--print`), le symbole est `●`. |
-| `✓` | réalisée | `complete` | L'étape est terminée. Cela ne veut pas dire qu'elle a été testée. |
-| `✓` | vérification exécutée | `validate` | Un test ou une vérification a réellement été lancé et a réussi. Le récit dit exactement ce qui a été testé. |
-| `✕` | erreur | `fail` | Une erreur réelle a interrompu ou modifié le travail. La ligne reste visible après la correction, qui forme une nouvelle ligne. |
-| `–` | approche remplacée | `replace` | L'agent a abandonné une approche. Le texte est atténué, et le récit dit pourquoi. |
-
-Les deux `✓` se distinguent dans le panneau d'aperçu et dans les détails (`réalisée` ou `vérification exécutée`).
-
-**Couleurs** (sur un terminal 256 couleurs) : bleu pâle pour une étape réalisée ou vérifiée, rose pâle pour une erreur ou un fait contradictoire, crème pour une étape en cours, les touches et la sélection. Les éléments secondaires sont atténués.
-
-**La première ligne** d'une demande est la fonctionnalité elle-même (« Ajouter la réinitialisation du mot de passe »). Elle reste en cours jusqu'à ce que l'agent ait terminé toute la demande. Les lignes suivantes sont ses parties, dans l'ordre chronologique, sans imbrication.
-
-| Repère | Signification |
-|---|---|
-| `›` en début de ligne | Étape sélectionnée (celle que détaillent l'aperçu et les vues). |
-| `Prêt` | Aucune étape encore : l'agent n'a pas commencé à travailler. |
-| `↓ 2 nouvelles étapes — [Fin] pour suivre` | Vous avez remonté la liste et de nouvelles étapes sont arrivées. `Fin` revient en bas et reprend le suivi en direct. |
-| `Bilan : …` | En fin de session : nombre d'étapes réalisées, de vérifications exécutées, d'erreurs, d'approches remplacées et d'étapes non terminées. |
-
-### Le panneau d'aperçu
-
-En bas de la liste, l'étape sélectionnée est résumée :
-
-```text
------------------------------------------------------------------------------
-  étape 5/8 · réalisée · 19 s
------------------------------------------------------------------------------
-  Le projet recherche maintenant la clé sous le bon nom : RESEND_API_KEY.
-```
-
-| Élément | Signification |
-|---|---|
-| `étape 5/8` | Position de l'étape sélectionnée dans la timeline. |
-| `réalisée · 19 s` | Statut et durée (du début à la fin de l'étape). |
-| `en cours depuis 42 s` | Pour une étape en cours, le temps écoulé depuis son début. |
-| Texte normal | Le récit de l'agent : ce qui est construit et ce que cela change. |
-| Texte atténué | Le détail technique : route, commande, table, message d'erreur exact. |
-| Texte rose : `Fait observé : la dernière commande de vérification a échoué (npm test).` | Le [recoupement](#recoupement-des-faits) : l'agent a déclaré l'étape réalisée ou vérifiée, mais le dernier test ou la dernière compilation lancés pendant l'étape a échoué. |
-| `… suite dans les détails [↵]` | Le texte ne tient pas dans le panneau. |
-| `Pas de récit pour cette étape.` | L'agent n'a donné que le titre. |
-
-### La ligne d'état et le menu
-
-```text
-  ⚠ erreur telex (instantanés) : git introuvable : les fichiers et le diff par étape sont indisponibles.
-  ↵ détails   D diff   T tests   Q quitter                    suivi en direct
-```
-
-- **La ligne d'état** (au-dessus du menu) n'apparaît qu'en cas de problème. Elle affiche la dernière erreur interne de telex : instantané impossible, erreur du serveur MCP ou du hook, fichier illisible. `Échap` l'efface. Voir [Dépannage](#dépannage).
-- **Le menu** liste les actions possibles. Le bouton **en surbrillance** est celui qu'exécute `Entrée` ; les flèches `←` `→` la déplacent. Une action grisée n'est pas disponible (aucune étape sélectionnée). Si le terminal est étroit, seules les touches restent affichées.
-- **À droite**, `suivi en direct` signifie que la sélection suit automatiquement la dernière étape. Dans les vues détaillées, `lignes 1–24 / 40` indique la position de défilement.
-
-### La vue détails `[↵]`
-
-```text
-  Corriger la configuration de Resend
-  ✓ réalisée   début 14:36:30   fin 14:36:49   (19 s)
-
-  Le projet recherche maintenant la clé sous le bon nom : RESEND_API_KEY.
-
-  Fichiers concernés
-  modifié   src/mail.js
-
-  Commandes observées
-  14:36:40  ✓  npm test -- reset
-
-  Preuves citées par l’agent
-  · src/mail.js
-  · npm test -- reset
-
-  Origine
-  Titre et récit : écrits par Claude Code via l’outil timeline. Fichiers :
-  instantanés pris par telex à chaque événement. Commandes : hook
-  PostToolUse de Claude Code.
-
-  Événements bruts [R] afficher
-```
-
-| Section | Contenu | Qui le produit |
-|---|---|---|
-| Titre, statut, heures | Début, fin et durée de l'étape. | telex (horodatage à la réception) |
-| Récit | Ce que l'agent dit avoir fait. | l'agent |
-| `Technique` | Le détail technique, s'il y en a un. | l'agent |
-| `Fichiers concernés` | Fichiers `ajouté`, `modifié` ou `supprimé` entre le début et la fin de l'étape. Pour une étape en cours, jusqu'au dernier instantané. | telex (instantanés) |
-| `Commandes observées` | Commandes shell réellement exécutées pendant l'étape, avec `✓` (réussie) ou `✕` (échec). Claude Code seulement. | telex (hook) |
-| `Preuves citées par l’agent` | Fichiers, tests ou résultats que l'agent cite à l'appui. Ils sont **déclarés**, pas vérifiés. | l'agent |
-| `Origine` | D'où vient chaque information. | telex |
-| `Événements bruts [R]` | Les événements reçus pour cette étape, en JSON. `R` les affiche ou les masque. | l'agent, tels que reçus |
-
-Messages possibles dans `Fichiers concernés` :
-
-| Message | Signification |
-|---|---|
-| `Aucun fichier modifié entre le début et la fin de l’étape.` | L'étape n'a rien changé (examen, diagnostic…). |
-| `Aucun fichier modifié depuis l’événement précédent.` | Pour une vérification isolée (sans durée propre), la comparaison part de l'événement précédent. |
-| `Étape en cours : les fichiers seront comparés à sa fin.` | Pas encore d'instantané postérieur au début. |
-| `Instantané indisponible : …` | L'instantané a échoué ; la raison suit (git absent, erreur git…). |
-
-### La vue diff `[D]`
-
-```text
-  Diff : Corriger la configuration de Resend
-
-  1 fichier  +1 -1
-
-  src/mail.js  modifié  +1 -1
-  ------------------------------------------------------------
-  1   import { Resend } from 'resend';
-  2
-  3 - const resend = new Resend(process.env.RESEND_KEY);
-  3 + const resend = new Resend(process.env.RESEND_API_KEY);
-  4
-  5   export async function send(to, subject, html) {
-```
-
-Le diff est calculé entre l'instantané du début et celui de la fin de l'étape. Sa présentation reprend celle de Claude Code : pour chaque fichier, son chemin, son statut (ajouté, modifié, supprimé) et le nombre de lignes ajoutées et retirées, puis ses lignes numérotées. L'ancien texte est sur fond rose pâle, avec son numéro dans l'ancienne version et son `-` en rouge ; le nouveau sur fond vert pâle, avec son numéro dans la nouvelle version et son `+` en vert. Le code y est écrit en gris foncé. Quand une ligne retirée et celle qui la remplace se ressemblent, les mots qui changent ressortent d'un fond plus soutenu. Un `⋯` sépare deux parties éloignées d'un même fichier, et une ligne trop longue continue sous son texte. Les secrets qu'il contiendrait sont masqués, et les fichiers exclus des instantanés (fichiers sensibles, fichiers de plus de 1 Mo) n'y figurent pas.
-
-### La vue tests `[T]`
-
-```text
-  Tests et compilations
-
-  Vérifications déclarées par l’agent
-  14:41:16  ✓  Conserver les tokens dans la base de données
-               Le test passe avec un service d’e-mail simulé. Aucun véritable
-               e-mail n’a encore été envoyé.
-
-  Pendant « Configurer l’accès à Resend »
-  14:36:05  ✕  npm test -- reset
-               Error: RESEND_API_KEY is not defined
-                   at sendResetEmail (src/mail.js:12:11)
-               # fail 1
-
-  Dans le reste de la session
-  14:36:40  ✓  npm test -- reset
-               # tests 7
-               # pass 7
-               # fail 0
-```
-
-| Section | Contenu |
-|---|---|
-| `Vérifications déclarées par l’agent` | Toutes les lignes `validate` de la session, avec le récit de ce qui a été testé. |
-| `Pendant « … »` | Tests et compilations observés pendant l'étape sélectionnée, avec les 12 dernières lignes de leur sortie. |
-| `Dans le reste de la session` | Les autres tests et compilations. |
-
-Une commande est considérée comme un test ou une compilation si elle contient l'un de ces mots : `test`, `jest`, `vitest`, `mocha`, `pytest`, `unittest`, `rspec`, `phpunit`, `go test`, `cargo test`, `cargo build`, `tsc`, `typecheck`, `lint`, `eslint`, `build`, `compile`, `make`, `gradle`, `mvn`, `swift build`, `swift test`, `xcodebuild`, `playwright`, `cypress`.
-
-Avec Codex, seule la section `Vérifications déclarées par l’agent` est remplie (voir [Limites connues](#limites-connues)).
+- **La timeline** : suivre le travail en direct. Une ligne par étape, dans l'ordre où l'agent les commence : `○` en cours (le rond bat), `✓` réalisée ou vérifiée, `✕` erreur, `–` approche remplacée. Sous la liste, le récit de l'étape sélectionnée ; en fin de session, un bilan.
+- **Les détails `↵`** : tout savoir d'une étape. Récit complet, fichiers modifiés, commandes exécutées, preuves citées par l'agent, et l'origine de chaque information (déclarée par l'agent ou observée par telex).
+- **Le diff `D`** : voir ce que l'étape a changé dans le code, fichier par fichier.
+- **Les tests `T`** : contrôler ce qui a réellement été testé. Les vérifications déclarées par l'agent, puis les tests et compilations observés pendant l'étape et dans le reste de la session, avec la fin de leur sortie. Avec Codex, seules les vérifications déclarées apparaissent.
 
 ## Raccourcis clavier
 
@@ -486,6 +307,8 @@ La comparaison de deux instantanés donne les fichiers et le diff de chaque éta
 ### Recoupement des faits
 
 Quand une étape est déclarée réalisée (`✓`) ou vérifiée, telex regarde les tests et compilations observés pendant cette étape. Si le **dernier** a échoué, la ligne porte en rose `Fait observé : la dernière commande de vérification a échoué (…)`. telex affiche ce fait précis plutôt qu'une conclusion avantageuse. Cela ne fonctionne qu'avec Claude Code, le seul agent dont les commandes sont observées.
+
+Une commande compte comme test ou compilation quand elle contient un mot comme `test`, `pytest`, `tsc`, `lint`, `build` ou `make` (liste complète dans [`src/timeline.js`](src/timeline.js)).
 
 ### Détection des sessions interrompues
 
@@ -601,7 +424,7 @@ Les erreurs de telex tiennent sur une ligne, suivie d'une piste de résolution. 
 
 **La timeline reste sur `Prêt`.** L'agent n'a pas encore commencé d'étape. S'il travaille déjà, vérifiez dans l'agent que le serveur MCP `telex` est connecté (commande `/mcp`) et que l'outil `timeline` est disponible.
 
-**L'affichage est décalé ou sans couleurs.** Utilisez un terminal qui gère les 256 couleurs et une police qui contient les caractères de dessin (`▄ █ ◐ ✓ ✕`).
+**L'affichage est décalé ou sans couleurs.** Utilisez un terminal qui gère les 256 couleurs et une police qui contient les caractères de dessin (`▄ █ ○ ● ✓ ✕`).
 
 ## Limites connues
 
