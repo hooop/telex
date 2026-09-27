@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="300" viewBox="0 0 1280 300" role="img" aria-labelledby="title desc">
+  <title id="title">Telex</title>
+  <desc id="desc">La mascotte pixelisée et le nom de Telex, centrés sur un fond anthracite.</desc>
+  <rect width="1280" height="300" rx="20" fill="#171717"/>
+  <g transform="translate(304 70)" fill="#eeeeee">
+    <path d="M24 0h96v24h24v96h-24v24H24v-24H0V24h24z"/>
+    <path d="M-12 48H0v48h-12zM144 48h12v48h-12z"/>
+    <path d="M0 48h144v48H0z" fill="#301300"/>
+    <path d="M24 48h24v48H24zM96 48h24v48H96z" fill="#ff9855"/>
+  </g>
+  <text x="510" y="187" fill="#f4f1ee" font-family="Menlo,Consolas,monospace" font-size="144" font-weight="700" letter-spacing="5">TELEX</text>
+</svg>
