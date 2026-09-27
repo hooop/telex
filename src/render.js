@@ -14,11 +14,14 @@ export const style = {
   accent: `${ESC}38;5;230m`, //   crème : étape en cours, touches, sélection
   muted: `${ESC}2;38;5;231m`, //  blanc atténué : détails secondaires, filets
   bright: `${ESC}38;5;231m`, //   blanc : heures, logo, informations principales
+  check: `${ESC}38;5;49m`, //     vert : icône ✓
+  cross: `${ESC}38;5;196m`, //    rouge : icône ✕
 };
 
 export const plain = Object.fromEntries(Object.keys(style).map((k) => [k, '']));
 
-const STATUS_COLOR = { running: 'accent', done: 'ok', validated: 'ok', failed: 'error', replaced: 'muted' };
+// Couleur de l'icône de chaque statut.
+export const ICON_COLOR = { running: 'accent', done: 'check', validated: 'check', failed: 'cross', replaced: 'muted' };
 
 export const INDENT = 13; // "HH:MM:SS  ●  "
 
@@ -60,8 +63,8 @@ const SPINNER = ['◐', '◓', '◑', '◒'];
 const SPINNER_COLORS = [225, 194]; // rose pâle, vert pâle
 export const SPINNER_TICKS = 1; // images d'animation par demi-rond
 
-function symbol(entry, tick, s, color) {
-  if (entry.status !== 'running' || tick == null) return `${color}${SYMBOL[entry.status]}${s.reset}`;
+function symbol(entry, tick, s) {
+  if (entry.status !== 'running' || tick == null) return `${s[ICON_COLOR[entry.status]]}${SYMBOL[entry.status]}${s.reset}`;
   const frame = Math.floor(tick / SPINNER_TICKS);
   const tint = s.reset ? `${ESC}38;5;${SPINNER_COLORS[frame % SPINNER_COLORS.length]}m` : '';
   return `${tint}${SPINNER[frame % SPINNER.length]}${s.reset}`;
@@ -71,11 +74,10 @@ function symbol(entry, tick, s, color) {
 // que la ligne pointillée recouvre pour traverser tout l'écran.
 // `compact` : heure, symbole et titre seulement (le récit passe dans le panneau d'aperçu).
 export function entryLines(entry, width, s = style, { tick = null, gutter = 0, compact = false } = {}) {
-  const color = s[STATUS_COLOR[entry.status]];
   const textWidth = Math.max(20, width - gutter - INDENT);
   const pad = ' '.repeat(gutter + INDENT);
   const [first, ...rest] = wrap(entry.title, textWidth);
-  const lines = [`${' '.repeat(gutter)}${s.bright}${clock(entry.ts)}${s.reset}  ${symbol(entry, tick, s, color)}  ${entry.status === 'replaced' ? s.dim : s.bold}${first}${s.reset}`];
+  const lines = [`${' '.repeat(gutter)}${s.bright}${clock(entry.ts)}${s.reset}  ${symbol(entry, tick, s)}  ${entry.status === 'replaced' ? s.dim : s.bold}${first}${s.reset}`];
   for (const r of rest) lines.push(`${pad}${s.bold}${r}${s.reset}`);
   if (compact) return lines;
   if (entry.narrative) {

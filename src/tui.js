@@ -6,7 +6,7 @@ import { Workspace } from './workspace.js';
 import { redact } from './redact.js';
 import { sanitize } from './sanitize.js';
 import { agentLabel } from './agents.js';
-import { buttonBar, clock, duration, entryLines, footerSummary, header, previewLines, separator, SPINNER_TICKS, STATUS_LABEL, style as s, visibleLength, wrap } from './render.js';
+import { buttonBar, clock, duration, entryLines, footerSummary, header, ICON_COLOR, previewLines, separator, SPINNER_TICKS, STATUS_LABEL, style as s, visibleLength, wrap } from './render.js';
 
 const LIVENESS_EVERY_MS = 2000; // vérification que l'agent tourne encore
 
@@ -113,7 +113,7 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
     const sec = (title) => { rows.push('', `${s.bold}${title}${s.reset}`); };
     const color = { running: s.accent, done: s.ok, validated: s.ok, failed: s.error, replaced: s.muted }[entry.status];
     rows.push(...wrap(entry.title, w).map((l) => `${s.bold}${l}${s.reset}`));
-    let when = `${color}${SYMBOL[entry.status]} ${STATUS_LABEL[entry.status]}${s.reset}   ${s.dim}début${s.reset} ${clock(entry.ts)}`;
+    let when = `${s[ICON_COLOR[entry.status]]}${SYMBOL[entry.status]}${s.reset} ${color}${STATUS_LABEL[entry.status]}${s.reset}   ${s.dim}début${s.reset} ${clock(entry.ts)}`;
     if (entry.end_ts && !isStandaloneCheck(entry)) {
       const secs = Math.round((Date.parse(entry.end_ts) - Date.parse(entry.ts)) / 1000);
       when += `   ${s.dim}fin${s.reset} ${clock(entry.end_ts)}   ${s.dim}(${duration(secs)})${s.reset}`;
@@ -158,7 +158,7 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
   }
 
   function commandLine(c, w, withOutput) {
-    const mark = c.ok ? `${s.ok}✓${s.reset}` : `${s.error}✕${s.reset}`;
+    const mark = c.ok ? `${s.check}✓${s.reset}` : `${s.cross}✕${s.reset}`;
     const rows = wrap(c.command, w - 13).map((l, i) => (i ? ' '.repeat(13) : `${s.muted}${clock(c.ts)}${s.reset}  ${mark}  `) + l);
     if (withOutput && c.output_tail) {
       const tail = sanitize(c.output_tail).split('\n').filter((l) => l.trim()).slice(-12);
@@ -197,7 +197,7 @@ export function runTui(sessionDir, { onQuit, onFatal, notice: initialNotice = nu
     if (checks.length) {
       rows.push(`${s.bold}Vérifications déclarées par l’agent${s.reset}`);
       for (const c of checks) {
-        rows.push(`${s.muted}${clock(c.ts)}${s.reset}  ${s.ok}✓${s.reset}  ${sanitize(c.title)}`);
+        rows.push(`${s.muted}${clock(c.ts)}${s.reset}  ${s.check}✓${s.reset}  ${sanitize(c.title)}`);
         if (c.narrative) rows.push(...wrap(c.narrative, w - 13).map((l) => ' '.repeat(13) + `${s.dim}${l}${s.reset}`));
       }
       rows.push('');
