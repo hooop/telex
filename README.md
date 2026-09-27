@@ -323,8 +323,10 @@ Sans réglage, telex essaie dans cet ordre :
 | tmux | vous êtes dans tmux (tous systèmes) | un panneau à droite, dans le dossier du projet |
 | iTerm2 | macOS, lancé depuis iTerm2 | une nouvelle fenêtre |
 | WezTerm | lancé depuis WezTerm | une nouvelle fenêtre (`wezterm cli spawn`) |
-| Terminal | macOS | une nouvelle fenêtre de Terminal.app |
+| Terminal | macOS | une nouvelle fenêtre de Terminal.app, placée juste à droite de la timeline |
 | Linux | session graphique (`DISPLAY` ou `WAYLAND_DISPLAY`) | le premier trouvé parmi `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`, `kitty`, `alacritty`, `foot`, `xterm` |
+
+Avec Terminal.app, telex place les deux fenêtres côte à côte : la timeline reste où elle est, et l'agent s'ouvre juste à sa droite, avec le même bord supérieur. Chacune garde sa taille. Si la paire ne tient pas à l'écran, elle est décalée, puis la fenêtre de l'agent est rétrécie. Pour laisser les fenêtres où Terminal les ouvre : `TELEX_LAYOUT=none`.
 
 Sur macOS, la première ouverture peut déclencher une demande d'autorisation (« … souhaite contrôler Terminal »). Si vous l'avez refusée, réactivez-la dans **Réglages Système › Confidentialité et sécurité › Automatisation**.
 
@@ -398,6 +400,7 @@ telex n'envoie rien, à personne. Notez cependant que le récit de la timeline e
 |---|---|---|
 | `TELEX_HOME` | Dossier des données de telex. | `~/.telex` |
 | `TELEX_TERMINAL` | Terminal à ouvrir, `none`, ou commande personnalisée ([détails](#choisir-le-terminal--telex_terminal)). | détection automatique |
+| `TELEX_LAYOUT` | `none` : ne pas placer les fenêtres côte à côte (Terminal.app). | côte à côte |
 | `TELEX_DEBUG` | `1` : affiche la trace complète des erreurs. | désactivé |
 | `COLORTERM` | `truecolor` ou `24bit` : couleurs exactes (sinon, palette 256 couleurs). | fourni par le terminal |
 
