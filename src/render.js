@@ -57,17 +57,17 @@ export function separator(width, s = style) {
   return `${s.muted}${'-'.repeat(Math.max(1, width - 1))}${s.reset}`;
 }
 
-// Rond à moitié rempli qui tourne (gauche, haut, droite, bas) pour une étape en cours,
-// en alternant rose pâle et vert pâle à chaque image pour un effet scintillant.
-const SPINNER = ['◐', '◓', '◑', '◒'];
-const SPINNER_COLORS = [225, 194]; // rose pâle, vert pâle
-export const SPINNER_TICKS = 1; // images d'animation par demi-rond
+// Battement pour une étape en cours : rond vide gris au repos, puis double pulsation
+// rose (vide, plein, vide, plein, vide). Une couleur par image.
+const SPINNER = ['○', '○', '○', '○', '○', '●', '○', '●', '○', '○'];
+const SPINNER_COLORS = [243, 243, 243, 243, 225, 218, 225, 218, 225, 243]; // gris, rose pâle, rose
+export const SPINNER_TICKS = 1; // images de l'interface (140 ms) par image du battement
 
 function symbol(entry, tick, s) {
   if (entry.status !== 'running' || tick == null) return `${s[ICON_COLOR[entry.status]]}${SYMBOL[entry.status]}${s.reset}`;
-  const frame = Math.floor(tick / SPINNER_TICKS);
-  const tint = s.reset ? `${ESC}38;5;${SPINNER_COLORS[frame % SPINNER_COLORS.length]}m` : '';
-  return `${tint}${SPINNER[frame % SPINNER.length]}${s.reset}`;
+  const frame = Math.floor(tick / SPINNER_TICKS) % SPINNER.length;
+  const tint = s.reset ? `${ESC}38;5;${SPINNER_COLORS[frame]}m` : '';
+  return `${tint}${SPINNER[frame]}${s.reset}`;
 }
 
 // Lignes d'une entrée. `gutter` : colonnes de marge à gauche (repère de sélection),
